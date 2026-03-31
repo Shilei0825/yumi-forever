@@ -138,9 +138,9 @@ export default function HomePage() {
               <Image
                 src="/logo-vertical.png"
                 alt={BRAND.name}
-                width={160}
-                height={160}
-                className="mb-6 h-28 w-auto brightness-0 invert sm:h-36"
+                width={280}
+                height={280}
+                className="mb-6 h-40 w-auto brightness-0 invert sm:h-52 lg:h-60"
                 priority
               />
               <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-6xl">
