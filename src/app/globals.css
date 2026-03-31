@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --color-background: #ffffff;
+  --color-foreground: #2A2A2A;
+  --color-primary: #57068C;
+  --color-primary-foreground: #ffffff;
+  --color-muted: #7A7A7A;
+  --color-dark: #57068C;
+  --color-violet-50: #f8f4fc;
+  --color-violet-100: #eedcf7;
+  --color-violet-200: #ddb8ef;
+  --color-violet-300: #c48ae3;
+  --color-violet-400: #a553d0;
+  --color-violet-500: #7e18b0;
+  --color-violet-600: #6a0e99;
+  --color-violet-700: #57068C;
+  --color-violet-800: #450570;
+  --color-violet-900: #340454;
+  --color-violet-950: #1f0235;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth transitions for interactive elements */
+a, button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid #57068C;
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a3a3a3;
+}
+
+/* Mobile optimizations */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Mobile bottom bar spacing */
+.pb-mobile-cta {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .pb-mobile-cta {
+    padding-bottom: 0;
+  }
+}
