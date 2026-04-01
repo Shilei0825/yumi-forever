@@ -1,29 +1,27 @@
 import Link from "next/link"
-import {
-  Car,
-  Clock,
-  ArrowRight,
-  CheckCircle2,
-  Zap,
-  Crown,
-} from "lucide-react"
+import { Car, ArrowRight, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card"
-import { BRAND, AUTO_SERVICES, SERVICES, VEHICLE_TYPES } from "@/lib/constants"
-import { formatCurrency } from "@/lib/utils"
+import { BRAND } from "@/lib/constants"
+import { HeroVideo } from "@/components/hero-video"
+import ServiceTiers from "./service-tiers"
 
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: `Auto Care Services | ${BRAND.name}`,
+  title: 'Auto Detailing & Car Wash Services in NJ & NYC',
   description:
-    "Premium mobile auto detailing including hand wash, interior detailing, paint correction, ceramic coating, and more.",
+    'Premium mobile auto detailing in New Jersey and NYC. Hand wash, interior detailing, paint correction, ceramic coating, and more. We come to your home or office. Book online with Yumi Forever.',
+  keywords: [
+    'auto detailing NJ', 'mobile car wash NJ', 'car detailing NYC',
+    'ceramic coating NJ', 'paint correction NJ', 'interior detailing NJ',
+    'hand car wash near me', 'mobile auto detailing NYC', 'express car wash NJ',
+  ],
+  openGraph: {
+    title: 'Auto Detailing & Car Wash | Yumi Forever | NJ & NYC',
+    description:
+      'Mobile auto detailing in NJ & NYC. Hand wash, ceramic coating, paint correction, interior detailing. Book online today.',
+  },
+  alternates: { canonical: 'https://yumiforever.com/services/auto-care' },
 }
 
 const HIGHLIGHTS = [
@@ -39,8 +37,12 @@ export default function AutoCarePage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-dark py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <HeroVideo videos={["/hero-car.mp4", "/hero-detail.mp4"]} />
+          <div className="absolute inset-0 bg-violet-950/75" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-600/20">
               <Car className="h-6 w-6 text-violet-400" />
@@ -59,7 +61,7 @@ export default function AutoCarePage() {
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
             <Button size="lg" className="bg-white text-primary hover:bg-neutral-100" asChild>
               <Link href="/book">
-                Book Auto Detailing
+                Book Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -69,133 +71,14 @@ export default function AutoCarePage() {
               className="border-white bg-transparent text-white hover:bg-white/10"
               asChild
             >
-              <Link href="/contact">Request a Quote</Link>
+              <Link href="/contact">Get a Quote</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Services List */}
-      <section className="bg-white py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
-            Our Auto Care Services
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg text-neutral-600">
-            Every service is performed by trained professionals using premium products
-            that protect your vehicle&apos;s finish.
-          </p>
-
-          {/* Express Services */}
-          <div className="mt-12 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
-              <Zap className="h-4 w-4 text-amber-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-amber-700">Express Services</h3>
-          </div>
-          <div className="mt-4 grid gap-6 lg:grid-cols-2">
-            {SERVICES.filter((s) => s.tier === 'express').map((service) => (
-              <Card key={service.slug} className="flex flex-col">
-                <CardHeader>
-                  <Link href={`/services/${service.slug}`} className="hover:underline">
-                    <CardTitle className="text-xl">{service.name}</CardTitle>
-                  </Link>
-                  <CardDescription className="mt-2 text-base">
-                    {service.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col justify-end">
-                  <div className="space-y-2 border-t border-neutral-100 pt-4">
-                    {VEHICLE_TYPES.map((vt) => (
-                      <div key={vt.key} className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-600">{vt.label}</span>
-                        <span className="font-semibold text-neutral-900">
-                          {formatCurrency(service.pricing[vt.key])}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center gap-4 text-sm text-neutral-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      ~{service.duration} min
-                    </span>
-                    <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">
-                      Deposit: {formatCurrency(service.depositAmount)}
-                    </span>
-                  </div>
-                  <div className="mt-6 flex gap-3">
-                    <Button variant="outline" className="flex-1" asChild>
-                      <Link href={`/services/${service.slug}`}>Details</Link>
-                    </Button>
-                    <Button className="flex-1" asChild>
-                      <Link href={`/book?service=${service.slug}`}>Book Now</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Premium Services */}
-          <div className="mt-16 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100">
-              <Crown className="h-4 w-4 text-violet-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-violet-700">Premium Services</h3>
-          </div>
-          <div className="mt-4 grid gap-6 lg:grid-cols-2">
-            {SERVICES.filter((s) => s.tier === 'premium').map((service) => (
-              <Card key={service.slug} className={`flex flex-col ${service.popular ? 'border-primary/30 ring-1 ring-primary/10' : ''}`}>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Link href={`/services/${service.slug}`} className="hover:underline">
-                      <CardTitle className="text-xl">{service.name}</CardTitle>
-                    </Link>
-                    {service.popular && (
-                      <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-800">
-                        Most Popular
-                      </span>
-                    )}
-                  </div>
-                  <CardDescription className="mt-2 text-base">
-                    {service.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col justify-end">
-                  <div className="space-y-2 border-t border-neutral-100 pt-4">
-                    {VEHICLE_TYPES.map((vt) => (
-                      <div key={vt.key} className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-600">{vt.label}</span>
-                        <span className="font-semibold text-neutral-900">
-                          {formatCurrency(service.pricing[vt.key])}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center gap-4 text-sm text-neutral-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      ~{service.duration} min
-                    </span>
-                    <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">
-                      Deposit: {formatCurrency(service.depositAmount)}
-                    </span>
-                  </div>
-                  <div className="mt-6 flex gap-3">
-                    <Button variant="outline" className="flex-1" asChild>
-                      <Link href={`/services/${service.slug}`}>Details</Link>
-                    </Button>
-                    <Button className="flex-1" asChild>
-                      <Link href={`/book?service=${service.slug}`}>Book Now</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Services List — collapsible tiers */}
+      <ServiceTiers />
 
       {/* What's Included */}
       <section className="bg-neutral-50 py-20 sm:py-24">

@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   Clock,
   Loader2,
   CreditCard,
@@ -216,6 +217,7 @@ function BookingPageInner() {
 
   const [step, setStep] = useState(1)
   const [maxReachedStep, setMaxReachedStep] = useState(1)
+  const [expandedTier, setExpandedTier] = useState<'express' | 'premium' | null>(null)
   const [booking, setBooking] = useState<BookingState>(INITIAL_STATE)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -453,109 +455,153 @@ function BookingPageInner() {
               Choose a service
             </h2>
 
-            <div className="grid gap-8 sm:grid-cols-2">
-              {/* Express Services (left column) */}
+            <div className="space-y-4">
+              {/* Express Tier */}
               <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-100">
-                    <Zap className="h-4 w-4 text-amber-600" />
+                <button
+                  type="button"
+                  onClick={() => setExpandedTier(expandedTier === 'express' ? null : 'express')}
+                  className={cn(
+                    'w-full flex items-center justify-between rounded-2xl border bg-white p-5 transition-colors',
+                    expandedTier === 'express' ? 'border-amber-300 ring-1 ring-amber-200' : 'border-gray-200 hover:border-gray-300'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
+                      <Zap className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-lg font-semibold text-gray-900">Express</h3>
+                      <p className="text-sm text-gray-500">(Quick service, under 90 min — wash, vacuum, basic care)</p>
+                    </div>
                   </div>
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-700">Express</h3>
-                </div>
-                <div className="space-y-3">
-                  {SERVICES.filter((s) => s.tier === 'express').map((svc) => {
-                    const isSelected = booking.service?.slug === svc.slug
-                    return (
-                      <div
-                        key={svc.slug}
-                        className={cn(
-                          'cursor-pointer rounded-2xl border bg-white p-4 transition-colors',
-                          isSelected
-                            ? 'border-primary ring-2 ring-primary/20'
-                            : 'border-gray-200 hover:border-gray-300'
-                        )}
-                        onClick={() => {
-                          updateBooking('service', svc)
-                          goNext()
-                        }}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900">{svc.name}</h3>
-                            <p className="mt-1 text-sm text-gray-500 line-clamp-2">{svc.description}</p>
-                            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" />
-                                ~{svc.duration} min
-                              </span>
-                              <span>From {formatCurrency(svc.pricing.sedan)}</span>
+                  <ChevronDown className={cn('h-5 w-5 text-gray-400 transition-transform duration-200', expandedTier === 'express' && 'rotate-180')} />
+                </button>
+
+                {/* Express plans */}
+                <div
+                  className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+                  style={{ gridTemplateRows: expandedTier === 'express' ? '1fr' : '0fr' }}
+                >
+                  <div className="overflow-hidden">
+                    <div className="pt-3 space-y-3">
+                      {SERVICES.filter((s) => s.tier === 'express').map((svc) => {
+                        const isSelected = booking.service?.slug === svc.slug
+                        return (
+                          <div
+                            key={svc.slug}
+                            className={cn(
+                              'cursor-pointer rounded-2xl border bg-white p-4 transition-colors',
+                              isSelected
+                                ? 'border-primary ring-2 ring-primary/20'
+                                : 'border-gray-200 hover:border-gray-300'
+                            )}
+                            onClick={() => {
+                              updateBooking('service', svc)
+                              goNext()
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-gray-900">{svc.name}</h3>
+                                <p className="mt-1 text-sm text-gray-500 line-clamp-2">{svc.description}</p>
+                                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    ~{svc.duration} min
+                                  </span>
+                                  <span>From {formatCurrency(svc.pricing.sedan)}</span>
+                                </div>
+                              </div>
+                              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-300">
+                                {isSelected && (
+                                  <div className="h-3 w-3 rounded-full bg-primary" />
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-300">
-                            {isSelected && (
-                              <div className="h-3 w-3 rounded-full bg-primary" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Premium Services (right column) */}
+              {/* Premium Tier */}
               <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-violet-100">
-                    <Crown className="h-4 w-4 text-violet-600" />
+                <button
+                  type="button"
+                  onClick={() => setExpandedTier(expandedTier === 'premium' ? null : 'premium')}
+                  className={cn(
+                    'w-full flex items-center justify-between rounded-2xl border bg-white p-5 transition-colors',
+                    expandedTier === 'premium' ? 'border-violet-300 ring-1 ring-violet-200' : 'border-gray-200 hover:border-gray-300'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100">
+                      <Crown className="h-5 w-5 text-violet-600" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-lg font-semibold text-gray-900">Premium</h3>
+                      <p className="text-sm text-gray-500">(Deep detail, 2–5 hrs — polish, clay bar, steam extraction)</p>
+                    </div>
                   </div>
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-violet-700">Premium</h3>
-                </div>
-                <div className="space-y-3">
-                  {SERVICES.filter((s) => s.tier === 'premium').map((svc) => {
-                    const isSelected = booking.service?.slug === svc.slug
-                    return (
-                      <div
-                        key={svc.slug}
-                        className={cn(
-                          'cursor-pointer rounded-2xl border bg-white p-4 transition-colors',
-                          isSelected
-                            ? 'border-primary ring-2 ring-primary/20'
-                            : 'border-gray-200 hover:border-gray-300'
-                        )}
-                        onClick={() => {
-                          updateBooking('service', svc)
-                          goNext()
-                        }}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900">{svc.name}</h3>
-                              {svc.popular && (
-                                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                                  Popular
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-1 text-sm text-gray-500 line-clamp-2">{svc.description}</p>
-                            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" />
-                                ~{svc.duration} min
-                              </span>
-                              <span>From {formatCurrency(svc.pricing.sedan)}</span>
-                            </div>
-                          </div>
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-300">
-                            {isSelected && (
-                              <div className="h-3 w-3 rounded-full bg-primary" />
+                  <ChevronDown className={cn('h-5 w-5 text-gray-400 transition-transform duration-200', expandedTier === 'premium' && 'rotate-180')} />
+                </button>
+
+                {/* Premium plans */}
+                <div
+                  className="grid transition-[grid-template-rows] duration-300 ease-in-out"
+                  style={{ gridTemplateRows: expandedTier === 'premium' ? '1fr' : '0fr' }}
+                >
+                  <div className="overflow-hidden">
+                    <div className="pt-3 space-y-3">
+                      {SERVICES.filter((s) => s.tier === 'premium').map((svc) => {
+                        const isSelected = booking.service?.slug === svc.slug
+                        return (
+                          <div
+                            key={svc.slug}
+                            className={cn(
+                              'cursor-pointer rounded-2xl border bg-white p-4 transition-colors',
+                              isSelected
+                                ? 'border-primary ring-2 ring-primary/20'
+                                : 'border-gray-200 hover:border-gray-300'
                             )}
+                            onClick={() => {
+                              updateBooking('service', svc)
+                              goNext()
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-semibold text-gray-900">{svc.name}</h3>
+                                  {svc.popular && (
+                                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                      Popular
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-1 text-sm text-gray-500 line-clamp-2">{svc.description}</p>
+                                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    ~{svc.duration} min
+                                  </span>
+                                  <span>From {formatCurrency(svc.pricing.sedan)}</span>
+                                </div>
+                              </div>
+                              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-300">
+                                {isSelected && (
+                                  <div className="h-3 w-3 rounded-full bg-primary" />
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    )
-                  })}
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

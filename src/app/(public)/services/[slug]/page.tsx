@@ -176,9 +176,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const service = getService(slug)
   if (!service) return { title: `Service Not Found | ${BRAND.name}` }
 
+  const title = `${service.name} in NJ & NYC | ${BRAND.name}`
+  const description = `${service.description} Professional ${service.name.toLowerCase()} service in New Jersey and New York City. Book online or request a quote from ${BRAND.name}.`
+
   return {
-    title: `${service.name} | ${BRAND.name}`,
-    description: service.description,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+    },
+    alternates: {
+      canonical: `https://yumiforever.com/services/${slug}`,
+    },
   }
 }
 
@@ -194,8 +204,40 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const related = getRelatedServices(slug)
   const included = WHATS_INCLUDED[slug] ?? []
 
+  // JSON-LD structured data for this service
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: service.name,
+    description: service.description,
+    provider: {
+      '@type': 'LocalBusiness',
+      name: BRAND.name,
+      url: 'https://yumiforever.com',
+    },
+    areaServed: [
+      { '@type': 'State', name: 'New Jersey' },
+      { '@type': 'City', name: 'New York City' },
+    ],
+    url: `https://yumiforever.com/services/${slug}`,
+    ...(service.basePrice > 0 && !service.requiresQuote
+      ? {
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'USD',
+            price: service.basePrice,
+            availability: 'https://schema.org/InStock',
+          },
+        }
+      : {}),
+  }
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero + What's Included */}
       <section className="bg-dark py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

@@ -25,15 +25,20 @@ import {
   getHomeServicePriceRange,
 } from "@/lib/pricing-engine"
 import type { HomeServiceType } from "@/lib/pricing-engine"
-import { formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 import { PricingCategoryTabs } from "./pricing-tabs"
 
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: `Pricing | ${BRAND.name}`,
+  title: 'Pricing | Auto Detailing & Home Cleaning Prices in NJ & NYC',
   description:
-    "Transparent pricing for home cleaning, auto detailing, and fleet services. No hidden fees.",
+    'Transparent pricing for auto detailing, home cleaning, office cleaning, and fleet services in New Jersey and NYC. No hidden fees. View prices and book online with Yumi Forever.',
+  openGraph: {
+    title: 'Pricing | Yumi Forever | NJ & NYC',
+    description:
+      'View transparent pricing for auto detailing, home cleaning, office cleaning, and fleet services. No hidden fees. Book online today.',
+  },
 }
 
 export default function PricingPage() {
@@ -680,8 +685,15 @@ export default function PricingPage() {
             {MEMBERSHIP_PLANS.map((plan) => (
               <Card
                 key={plan.slug}
-                className="relative"
+                className={cn("relative", 'popular' in plan && plan.popular && "border-primary/30 ring-1 ring-primary/10")}
               >
+                {'popular' in plan && plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
                 <CardHeader>
                   <CardTitle className="text-lg">{plan.name}</CardTitle>
                   <CardDescription>{plan.description}</CardDescription>

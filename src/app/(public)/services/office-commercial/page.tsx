@@ -11,6 +11,7 @@ import {
   Calculator,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { HeroVideo } from "@/components/hero-video"
 import {
   Card,
   CardHeader,
@@ -31,9 +32,20 @@ import { formatCurrency } from "@/lib/utils"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: `Office & Commercial Cleaning | ${BRAND.name}`,
+  title: 'Office & Commercial Cleaning in NJ & NYC',
   description:
-    "Professional office and commercial cleaning with flexible daily, weekly, and monthly plans for businesses of all sizes.",
+    'Professional office cleaning and commercial cleaning services in New Jersey and New York City. Flexible daily, weekly, and monthly plans. Insured crews, eco-friendly products. Get a quote from Yumi Forever.',
+  keywords: [
+    'office cleaning NJ', 'commercial cleaning NYC', 'janitorial service NJ',
+    'office cleaning service near me', 'commercial cleaning New Jersey',
+    'recurring office cleaning NYC', 'building cleaning NJ', 'business cleaning service',
+  ],
+  openGraph: {
+    title: 'Office & Commercial Cleaning | Yumi Forever | NJ & NYC',
+    description:
+      'Recurring office and commercial cleaning in NJ & NYC. Flexible scheduling, dedicated crews, and contract discounts. Book online.',
+  },
+  alternates: { canonical: 'https://yumiforever.com/services/office-commercial' },
 }
 
 const HIGHLIGHTS = [
@@ -76,8 +88,12 @@ export default function OfficeCommercialPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-dark py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <HeroVideo videos={["/hero-office.mp4"]} />
+          <div className="absolute inset-0 bg-violet-950/75" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-600/20">
               <Building2 className="h-6 w-6 text-violet-400" />

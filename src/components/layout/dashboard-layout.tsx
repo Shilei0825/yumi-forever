@@ -48,7 +48,7 @@ export function DashboardLayout({
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
           {!sidebarCollapsed && (
             <Link href="/">
-              <Image src="/logo-horizontal.png" alt={BRAND.name} width={140} height={38} className="h-8 w-auto" />
+              <Image src="/logo-horizontal.png" alt={BRAND.name} width={1536} height={1024} className="h-8 w-auto" />
             </Link>
           )}
           <button
@@ -161,7 +161,7 @@ export function DashboardLayout({
       >
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
           <Link href="/">
-            <Image src="/logo-horizontal.png" alt={BRAND.name} width={140} height={38} className="h-8 w-auto" />
+            <Image src="/logo-horizontal.png" alt={BRAND.name} width={1536} height={1024} className="h-8 w-auto" />
           </Link>
           <button
             type="button"

@@ -29,8 +29,20 @@ import { ServicesCategoryTabs } from "./services-tabs"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: `Services | ${BRAND.name}`,
-  description: "Explore our full range of premium home cleaning, auto detailing, and fleet services.",
+  title: 'Cleaning & Detailing Services in NJ & NYC',
+  description:
+    'Explore Yumi Forever\'s full range of services: mobile auto detailing, professional home cleaning, office cleaning, and fleet washing across New Jersey and New York City. Book online today.',
+  keywords: [
+    'cleaning services NJ', 'detailing services NYC', 'auto detailing NJ',
+    'home cleaning NYC', 'office cleaning NJ', 'fleet washing NJ',
+    'yumi forever services', 'professional cleaning near me',
+  ],
+  openGraph: {
+    title: 'Cleaning & Detailing Services | Yumi Forever | NJ & NYC',
+    description:
+      'Auto detailing, home cleaning, office cleaning, and fleet washing services in NJ & NYC. View all services and book online.',
+  },
+  alternates: { canonical: 'https://yumiforever.com/services' },
 }
 
 const CATEGORIES = [

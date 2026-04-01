@@ -9,6 +9,7 @@ import {
   BarChart3,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { HeroVideo } from "@/components/hero-video"
 import {
   Card,
   CardHeader,
@@ -21,9 +22,20 @@ import { BRAND, FLEET_SERVICES } from "@/lib/constants"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: `Truck & Fleet Services | ${BRAND.name}`,
+  title: 'Truck & Fleet Washing Services in NJ & NYC',
   description:
-    "Commercial fleet washing, detailing, and recurring service contracts for businesses of all sizes.",
+    'Commercial fleet washing, truck detailing, and recurring fleet service contracts in New Jersey and NYC. On-site service, volume pricing, and dedicated crews. Get a custom quote from Yumi Forever.',
+  keywords: [
+    'fleet washing NJ', 'truck wash NYC', 'commercial fleet cleaning NJ',
+    'fleet detailing service', 'truck detailing NJ', 'van washing service NJ',
+    'mobile fleet wash NYC', 'fleet cleaning contract NJ',
+  ],
+  openGraph: {
+    title: 'Truck & Fleet Washing Services | Yumi Forever | NJ & NYC',
+    description:
+      'Fleet washing and truck detailing in NJ & NYC. Custom contracts, on-site service, and volume pricing for businesses of all sizes.',
+  },
+  alternates: { canonical: 'https://yumiforever.com/services/truck-fleet' },
 }
 
 const BENEFITS = [
@@ -76,8 +88,12 @@ export default function TruckFleetPage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-dark py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <HeroVideo videos={["/hero-fleet.mp4"]} />
+          <div className="absolute inset-0 bg-violet-950/75" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-600/20">
               <Truck className="h-6 w-6 text-violet-400" />

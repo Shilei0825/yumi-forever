@@ -37,7 +37,7 @@ export function Footer() {
         {/* Top Section: Logo + Tagline */}
         <div className="mb-10 border-b border-white/10 pb-10">
           <Link href="/" className="inline-block">
-            <Image src="/logo-horizontal.png" alt={BRAND.name} width={200} height={54} className="h-14 w-auto brightness-0 invert" />
+            <Image src="/logo-horizontal.png" alt={BRAND.name} width={1536} height={1024} className="h-14 w-auto brightness-0 invert" />
           </Link>
           <p className="mt-3 max-w-md text-sm text-neutral-400">
             {BRAND.tagline}

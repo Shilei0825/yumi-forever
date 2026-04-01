@@ -169,6 +169,12 @@ export default function HomePage() {
       bestRating: '5',
     },
     image: 'https://yumiforever.com/logo-vertical.png',
+    logo: {
+      '@type': 'ImageObject',
+      url: 'https://yumiforever.com/logo-horizontal.png',
+      width: 976,
+      height: 352,
+    },
     sameAs: [],
   }
 
@@ -446,16 +452,16 @@ export default function HomePage() {
             </p>
           </div>
           <div className="mt-16 grid gap-8 lg:grid-cols-3">
-            {MEMBERSHIP_PLANS.map((plan, index) => (
+            {MEMBERSHIP_PLANS.map((plan) => (
               <Card
                 key={plan.slug}
                 className={
-                  index === 2
+                  'popular' in plan && plan.popular
                     ? "relative border-2 border-violet-700"
                     : ""
                 }
               >
-                {index === 2 && (
+                {'popular' in plan && plan.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-violet-700 px-4 py-1 text-xs font-semibold text-white">
                     Best Value
                   </div>
@@ -486,7 +492,7 @@ export default function HomePage() {
                   <div className="mt-8">
                     <Button
                       className="w-full"
-                      variant={index === 2 ? "default" : "outline"}
+                      variant={'popular' in plan && plan.popular ? "default" : "outline"}
                       asChild
                     >
                       <Link href="/book">Get Started</Link>

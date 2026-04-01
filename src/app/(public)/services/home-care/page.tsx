@@ -6,6 +6,7 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { HeroVideo } from "@/components/hero-video"
 import {
   Card,
   CardHeader,
@@ -19,9 +20,20 @@ import { formatCurrency } from "@/lib/utils"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: `Home Care Services | ${BRAND.name}`,
+  title: 'Home Cleaning Services in NJ & NYC',
   description:
-    "Professional home cleaning services including standard cleaning, deep cleaning, move-in/move-out, and carpet cleaning.",
+    'Professional home cleaning services in New Jersey and NYC. Standard cleaning, deep cleaning, move-in/move-out cleaning, and carpet cleaning. Eco-friendly products, background-checked crews. Book online with Yumi Forever.',
+  keywords: [
+    'home cleaning NJ', 'house cleaning NYC', 'deep cleaning NJ',
+    'move out cleaning NJ', 'move in cleaning NYC', 'carpet cleaning NJ',
+    'maid service NJ', 'professional house cleaning near me', 'eco-friendly cleaning NJ',
+  ],
+  openGraph: {
+    title: 'Home Cleaning Services | Yumi Forever | NJ & NYC',
+    description:
+      'Professional home cleaning in NJ & NYC. Deep cleaning, move-in/move-out, carpet cleaning, and more. Book online today.',
+  },
+  alternates: { canonical: 'https://yumiforever.com/services/home-care' },
 }
 
 const HIGHLIGHTS = [
@@ -37,8 +49,12 @@ export default function HomeCarePage() {
   return (
     <>
       {/* Hero */}
-      <section className="bg-dark py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <HeroVideo videos={["/hero-home.mp4"]} />
+          <div className="absolute inset-0 bg-violet-950/75" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-violet-600/20">
               <Sparkles className="h-6 w-6 text-violet-400" />
