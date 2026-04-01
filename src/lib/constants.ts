@@ -565,6 +565,7 @@ export const MEMBERSHIP_PLANS = [
   {
     name: 'Auto Care Monthly',
     slug: 'auto-care-monthly',
+    category: 'individual' as const,
     description: '2 express washes + 1 interior detail per month',
     price: 9900,
     interval: 'month' as const,
@@ -579,6 +580,7 @@ export const MEMBERSHIP_PLANS = [
   {
     name: 'Home Care Monthly',
     slug: 'home-care-monthly',
+    category: 'individual' as const,
     description: 'Bi-weekly standard home cleaning',
     price: 19900,
     interval: 'month' as const,
@@ -593,6 +595,7 @@ export const MEMBERSHIP_PLANS = [
   {
     name: 'Premium Bundle',
     slug: 'premium-bundle',
+    category: 'individual' as const,
     description: 'Auto + home care at one unbeatable price',
     price: 27900,
     interval: 'month' as const,
@@ -643,11 +646,26 @@ export const VEHICLE_TYPES: { key: VehicleType; label: string; description: stri
   { key: 'large_suv', label: '3-Row SUV / Pickup', description: 'Full-size SUVs, trucks, and vans' },
 ]
 
-export const ADDONS: { id: string; name: string; description?: string; pricing: Record<VehicleType, number>; quoteOnly?: boolean }[] = [
-  { id: 'engine-bay', name: 'Engine Bay Cleaning', description: 'Detailed engine compartment cleaning and degreasing', pricing: { sedan: 6000, compact_suv: 7500, large_suv: 9500 } },
+export interface AddonDefinition {
+  id: string
+  name: string
+  description?: string
+  pricing: Record<VehicleType, number>
+  quoteOnly?: boolean
+  /** Service slugs where this add-on is already included */
+  includedIn?: string[]
+  /** If true, user can specify quantity (e.g. number of spots for paint correction) */
+  quantifiable?: boolean
+  quantityLabel?: string
+}
+
+export const ADDONS: AddonDefinition[] = [
+  { id: 'engine-bay', name: 'Engine Bay Cleaning', description: 'Detailed engine compartment cleaning and degreasing', pricing: { sedan: 6000, compact_suv: 7500, large_suv: 9500 }, includedIn: ['premium-detail'] },
   { id: 'odor-removal', name: 'Odor Removal', description: 'Professional ozone treatment and deodorizing', pricing: { sedan: 7500, compact_suv: 9500, large_suv: 12500 } },
-  { id: 'clay-bar', name: 'Clay Bar Treatment', description: 'Paint decontamination for a smooth finish', pricing: { sedan: 5000, compact_suv: 6500, large_suv: 8500 } },
+  { id: 'clay-bar', name: 'Clay Bar Treatment', description: 'Paint decontamination for a smooth finish', pricing: { sedan: 5000, compact_suv: 6500, large_suv: 8500 }, includedIn: ['premium-exterior', 'premium-detail'] },
   { id: 'hand-wax', name: 'Hand Wax & Seal', description: 'Premium hand wax with protective sealant', pricing: { sedan: 6000, compact_suv: 8000, large_suv: 10000 } },
+  { id: 'headlight-restoration', name: 'Headlight Restoration', description: 'UV-damaged lens sanding, polishing, and clear coat seal', pricing: { sedan: 8000, compact_suv: 8000, large_suv: 8000 } },
+  { id: 'paint-correction', name: 'Paint Correction', description: 'Scratch & swirl removal per panel (hood, door, fender, etc.)', pricing: { sedan: 7500, compact_suv: 7500, large_suv: 7500 }, quantifiable: true, quantityLabel: 'panels' },
   { id: 'ceramic-coating', name: 'Ceramic Coating', description: 'Professional-grade ceramic paint protection', pricing: { sedan: 0, compact_suv: 0, large_suv: 0 }, quoteOnly: true },
   { id: 'window-tint', name: 'Window Tint', description: 'Professional window tinting service', pricing: { sedan: 0, compact_suv: 0, large_suv: 0 }, quoteOnly: true },
   { id: 'ppf', name: 'PPF (Paint Protection Film)', description: 'Clear film protection for high-impact areas', pricing: { sedan: 0, compact_suv: 0, large_suv: 0 }, quoteOnly: true },

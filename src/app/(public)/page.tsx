@@ -445,10 +445,10 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
-              Membership Plans
+              Individual Membership Plans
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-600">
-              Save with a membership. Regular service, priority scheduling, and exclusive discounts.
+              Save with a personal membership. Regular service, priority scheduling, and exclusive discounts. For business and fleet plans, <a href="/services/truck-fleet" className="text-primary underline hover:text-primary/80">see fleet services</a>.
             </p>
           </div>
           <div className="mt-16 grid gap-8 lg:grid-cols-3">

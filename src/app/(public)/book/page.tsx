@@ -10,6 +10,8 @@ import {
   Clock,
   Loader2,
   CreditCard,
+  Minus,
+  Plus,
   Zap,
   Crown,
 } from 'lucide-react'
@@ -36,6 +38,7 @@ interface BookingState {
   service: ServiceDefinition | null
   vehicleType: VehicleType | ''
   addons: string[] // addon IDs
+  addonQuantities: Record<string, number> // addon ID -> quantity (for quantifiable add-ons)
   date: string
   timeSlot: string
   street: string
@@ -68,6 +71,7 @@ const INITIAL_STATE: BookingState = {
   service: null,
   vehicleType: '',
   addons: [],
+  addonQuantities: {},
   date: '',
   timeSlot: '',
   street: '',
@@ -316,13 +320,18 @@ function BookingPageInner() {
     return addon.pricing[booking.vehicleType as VehicleType] || 0
   }, [booking.vehicleType])
 
+  const getAddonQuantity = useCallback((addonId: string) => {
+    return booking.addonQuantities[addonId] || 1
+  }, [booking.addonQuantities])
+
   const addonTotal = useMemo(() => {
     return booking.addons.reduce((sum, id) => {
       const addon = ADDONS.find((a) => a.id === id)
       if (!addon) return sum
-      return sum + getAddonPrice(addon)
+      const qty = addon.quantifiable ? getAddonQuantity(id) : 1
+      return sum + getAddonPrice(addon) * qty
     }, 0)
-  }, [booking.addons, getAddonPrice])
+  }, [booking.addons, getAddonPrice, getAddonQuantity])
 
   const subtotal = servicePrice + addonTotal
   const tax = Math.round(subtotal * TAX_RATE)
@@ -364,6 +373,21 @@ function BookingPageInner() {
     }))
   }
 
+  function setAddonQuantity(addonId: string, qty: number) {
+    setBooking((prev) => ({
+      ...prev,
+      addonQuantities: { ...prev.addonQuantities, [addonId]: Math.max(1, qty) },
+    }))
+  }
+
+  // Check if an add-on is already included in the selected service
+  function isAddonIncluded(addonId: string): boolean {
+    if (!booking.service) return false
+    const addon = ADDONS.find((a) => a.id === addonId)
+    if (!addon?.includedIn) return false
+    return addon.includedIn.includes(booking.service.slug)
+  }
+
   // ----- Submit -----
   async function handleSubmit() {
     if (!booking.consentChecked) {
@@ -382,7 +406,8 @@ function BookingPageInner() {
         addons: booking.addons.map((id) => {
           const addon = ADDONS.find((a) => a.id === id)
           const price = addon ? getAddonPrice(addon) : 0
-          return { id, name: addon?.name || id, price }
+          const qty = addon?.quantifiable ? getAddonQuantity(id) : 1
+          return { id, name: addon?.name || id, price, quantity: qty }
         }),
         customer_name: booking.customerName.trim(),
         customer_email: booking.customerEmail.trim(),
@@ -683,6 +708,37 @@ function BookingPageInner() {
 
             <div className="space-y-3">
               {ADDONS.map((addon) => {
+                const included = isAddonIncluded(addon.id)
+
+                // Already included in selected service
+                if (included) {
+                  return (
+                    <div
+                      key={addon.id}
+                      className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 flex-1">
+                          <Check className="h-5 w-5 shrink-0 text-emerald-600" />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-900">{addon.name}</p>
+                              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                Included
+                              </span>
+                            </div>
+                            {addon.description && (
+                              <p className="mt-0.5 text-sm text-gray-500">{addon.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-sm font-medium text-emerald-600">$0</span>
+                      </div>
+                    </div>
+                  )
+                }
+
+                // Quote-only add-ons
                 if (addon.quoteOnly) {
                   return (
                     <div
@@ -705,18 +761,21 @@ function BookingPageInner() {
                 }
 
                 const isSelected = booking.addons.includes(addon.id)
+                const qty = addon.quantifiable ? getAddonQuantity(addon.id) : 1
                 return (
                   <div
                     key={addon.id}
                     className={cn(
-                      'cursor-pointer rounded-lg border bg-white p-4 transition-colors',
+                      'rounded-lg border bg-white p-4 transition-colors',
                       isSelected
                         ? 'border-primary ring-2 ring-primary/20'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
-                    onClick={() => toggleAddon(addon.id)}
                   >
-                    <div className="flex items-center justify-between gap-4">
+                    <div
+                      className="flex items-center justify-between gap-4 cursor-pointer"
+                      onClick={() => toggleAddon(addon.id)}
+                    >
                       <div className="flex items-center gap-3 flex-1">
                         {/* Toggle switch */}
                         <div
@@ -739,10 +798,40 @@ function BookingPageInner() {
                           )}
                         </div>
                       </div>
-                      <span className="font-semibold text-gray-900">
-                        +{formatCurrency(getAddonPrice(addon))}
+                      <span className="font-semibold text-gray-900 shrink-0">
+                        +{formatCurrency(getAddonPrice(addon) * qty)}
+                        {addon.quantifiable && qty > 1 && (
+                          <span className="ml-1 text-xs font-normal text-gray-400">({qty}x)</span>
+                        )}
                       </span>
                     </div>
+
+                    {/* Quantity selector for quantifiable add-ons */}
+                    {addon.quantifiable && isSelected && (
+                      <div className="mt-3 flex items-center gap-3 pl-14">
+                        <span className="text-sm text-gray-600">How many {addon.quantityLabel || 'units'}?</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setAddonQuantity(addon.id, qty - 1) }}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-semibold text-gray-900">{qty}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setAddonQuantity(addon.id, qty + 1) }}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {formatCurrency(getAddonPrice(addon))}/{addon.quantityLabel === 'panels' ? 'panel' : 'unit'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -759,10 +848,11 @@ function BookingPageInner() {
                   {booking.addons.map((id) => {
                     const addon = ADDONS.find((a) => a.id === id)
                     if (!addon) return null
+                    const qty = addon.quantifiable ? getAddonQuantity(id) : 1
                     return (
                       <div key={id} className="flex items-center justify-between text-sm text-gray-600">
-                        <span>{addon.name}</span>
-                        <span>+{formatCurrency(getAddonPrice(addon))}</span>
+                        <span>{addon.name}{qty > 1 ? ` x${qty}` : ''}</span>
+                        <span>+{formatCurrency(getAddonPrice(addon) * qty)}</span>
                       </div>
                     )
                   })}
@@ -1026,10 +1116,11 @@ function BookingPageInner() {
                     {booking.addons.map((id) => {
                       const addon = ADDONS.find((a) => a.id === id)
                       if (!addon) return null
+                      const qty = addon.quantifiable ? getAddonQuantity(id) : 1
                       return (
                         <div key={id} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-700">{addon.name}</span>
-                          <span className="text-gray-900">{formatCurrency(getAddonPrice(addon))}</span>
+                          <span className="text-gray-700">{addon.name}{qty > 1 ? ` x${qty}` : ''}</span>
+                          <span className="text-gray-900">{formatCurrency(getAddonPrice(addon) * qty)}</span>
                         </div>
                       )
                     })}
@@ -1100,10 +1191,11 @@ function BookingPageInner() {
                   {booking.addons.map((id) => {
                     const addon = ADDONS.find((a) => a.id === id)
                     if (!addon) return null
+                    const qty = addon.quantifiable ? getAddonQuantity(id) : 1
                     return (
                       <div key={id} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{addon.name}</span>
-                        <span className="text-gray-900">{formatCurrency(getAddonPrice(addon))}</span>
+                        <span className="text-gray-600">{addon.name}{qty > 1 ? ` x${qty}` : ''}</span>
+                        <span className="text-gray-900">{formatCurrency(getAddonPrice(addon) * qty)}</span>
                       </div>
                     )
                   })}

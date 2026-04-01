@@ -673,11 +673,11 @@ export default function PricingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-              Save with a Membership
+              Individual Membership Plans
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base text-neutral-600">
-              Lock in recurring savings with a monthly membership. Cancel
-              anytime.
+              Lock in recurring savings with a personal monthly membership. Cancel
+              anytime. For business and fleet plans, <a href="/services/truck-fleet" className="text-primary underline hover:text-primary/80">contact us</a>.
             </p>
           </div>
 
