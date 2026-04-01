@@ -195,7 +195,7 @@ export default function HomePage() {
                 alt={BRAND.name}
                 width={1024}
                 height={1536}
-                className="mb-4 h-48 w-auto brightness-0 invert sm:h-56 lg:h-64"
+                className="mb-4 hidden h-56 w-auto brightness-0 invert sm:block lg:h-64"
                 priority
               />
               <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-6xl">
