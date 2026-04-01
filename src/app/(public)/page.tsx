@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card"
 import { BRAND, MEMBERSHIP_PLANS } from "@/lib/constants"
 import { formatCurrency } from "@/lib/utils"
+import { HeroVideo } from "@/components/hero-video"
 
 const SERVICE_CATEGORIES = [
   {
@@ -127,42 +128,118 @@ const TESTIMONIALS = [
 ]
 
 export default function HomePage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: 'Yumi Forever',
+    description:
+      'Premium auto detailing, home cleaning, office cleaning, and fleet washing services serving New Jersey and New York City. Mobile car wash, ceramic coating, deep cleaning, and more.',
+    url: 'https://yumiforever.com',
+    telephone: '(555) 123-4567',
+    areaServed: [
+      {
+        '@type': 'State',
+        name: 'New Jersey',
+      },
+      {
+        '@type': 'City',
+        name: 'New York City',
+      },
+    ],
+    serviceType: [
+      'Auto Detailing',
+      'Car Wash',
+      'Mobile Car Wash',
+      'Ceramic Coating',
+      'Paint Correction',
+      'Interior Detailing',
+      'Home Cleaning',
+      'Deep Cleaning',
+      'Move-In/Move-Out Cleaning',
+      'Office Cleaning',
+      'Commercial Cleaning',
+      'Truck Fleet Washing',
+      'Fleet Detailing',
+    ],
+    priceRange: '$$',
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.9',
+      reviewCount: '500',
+      bestRating: '5',
+    },
+    image: 'https://yumiforever.com/logo-vertical.png',
+    sameAs: [],
+  }
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
-      <section className="bg-dark overflow-hidden">
-        <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
+      <section className="relative overflow-hidden">
+        {/* Video background */}
+        <div className="absolute inset-0 z-0">
+          <HeroVideo />
+          {/* Purple overlay filter */}
+          <div className="absolute inset-0 bg-violet-950/75" />
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-5 pt-4 pb-8 sm:px-6 sm:pt-6 sm:pb-14 lg:px-8 lg:pt-8 lg:pb-16">
           <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:items-center">
             {/* Left: Text + CTAs */}
             <div>
               <Image
                 src="/logo-vertical.png"
                 alt={BRAND.name}
-                width={280}
-                height={280}
-                className="mb-6 h-40 w-auto brightness-0 invert sm:h-52 lg:h-60"
+                width={1024}
+                height={1536}
+                className="mb-4 h-80 w-auto brightness-0 invert sm:h-96 lg:h-[28rem]"
                 priority
               />
               <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-6xl">
                 {BRAND.tagline}
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-neutral-400 sm:mt-6 sm:text-lg sm:text-neutral-300">
+              <p className="mt-3 max-w-2xl text-base leading-relaxed text-neutral-400 sm:mt-5 sm:text-lg sm:text-neutral-300">
                 Professional home cleaning, auto detailing, office care, and fleet services — delivered to your door across NJ & NYC.
               </p>
-              <div className="mt-8 flex gap-3 sm:mt-10 sm:flex-row sm:gap-4">
-                <Button size="default" className="h-12 rounded-xl bg-white px-6 text-base font-semibold text-primary hover:bg-neutral-100 sm:h-11 sm:px-8 sm:rounded-md sm:text-sm" asChild>
+
+              {/* Mobile: service category quick-pick grid */}
+              <div className="mt-6 grid grid-cols-2 gap-2 sm:hidden">
+                <Link href="/services/auto-care" className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-3 transition-colors active:bg-white/20">
+                  <Car className="h-5 w-5 text-amber-400" />
+                  <span className="text-sm font-medium text-white">Auto Care</span>
+                </Link>
+                <Link href="/services/home-care" className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-3 transition-colors active:bg-white/20">
+                  <Sparkles className="h-5 w-5 text-blue-400" />
+                  <span className="text-sm font-medium text-white">Home Care</span>
+                </Link>
+                <Link href="/services/office-commercial" className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-3 transition-colors active:bg-white/20">
+                  <Building2 className="h-5 w-5 text-violet-400" />
+                  <span className="text-sm font-medium text-white">Office</span>
+                </Link>
+                <Link href="/services/truck-fleet" className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-3 transition-colors active:bg-white/20">
+                  <Truck className="h-5 w-5 text-emerald-400" />
+                  <span className="text-sm font-medium text-white">Truck & Fleet</span>
+                </Link>
+              </div>
+
+              {/* Desktop: CTA buttons */}
+              <div className="mt-6 hidden gap-4 sm:flex">
+                <Button size="default" className="h-11 bg-white px-8 text-sm font-semibold text-primary hover:bg-neutral-100" asChild>
                   <Link href="/book">
                     Book Now
-                    <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                    <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <Button size="default" variant="outline" className="h-12 rounded-xl border-white/30 bg-transparent px-6 text-base font-semibold text-white hover:bg-white/10 sm:h-11 sm:px-8 sm:rounded-md sm:text-sm" asChild>
+                <Button size="default" variant="outline" className="h-11 border-white/30 bg-transparent px-8 text-sm font-semibold text-white hover:bg-white/10" asChild>
                   <Link href="/services">Our Services</Link>
                 </Button>
               </div>
 
               {/* Service area badge */}
-              <div className="mt-8">
+              <div className="mt-5 sm:mt-8">
                 <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/80">
                   <MapPin className="h-4 w-4" />
                   Serving the NJ & NYC Metro Area
@@ -170,56 +247,56 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: Service photo collage */}
+            {/* Right: Service photo collage (desktop only) */}
             <div className="mt-10 hidden lg:block">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-3">
-                  <div className="relative overflow-hidden rounded-2xl">
+                  <Link href="/services/auto-care" className="group relative block overflow-hidden rounded-2xl">
                     <Image
                       src="https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=600&h=400&fit=crop"
                       alt="Professional hand washing a sports car with soap and sponge"
                       width={600}
                       height={400}
-                      className="h-48 w-full object-cover"
+                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <p className="absolute bottom-3 left-4 text-sm font-semibold text-white">Auto Detailing</p>
-                  </div>
-                  <div className="relative overflow-hidden rounded-2xl">
+                  </Link>
+                  <Link href="/services/truck-fleet" className="group relative block overflow-hidden rounded-2xl">
                     <Image
-                      src="https://images.unsplash.com/photo-1591768793355-74d04bb6608f?w=600&h=400&fit=crop"
-                      alt="Commercial fleet truck on highway"
+                      src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=600&h=400&fit=crop"
+                      alt="Fleet of white commercial vans parked in a row"
                       width={600}
                       height={400}
-                      className="h-48 w-full object-cover"
+                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <p className="absolute bottom-3 left-4 text-sm font-semibold text-white">Fleet Services</p>
-                  </div>
+                  </Link>
                 </div>
                 <div className="space-y-3 pt-8">
-                  <div className="relative overflow-hidden rounded-2xl">
+                  <Link href="/services/home-care" className="group relative block overflow-hidden rounded-2xl">
                     <Image
                       src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=400&fit=crop"
                       alt="Professional home cleaning"
                       width={600}
                       height={400}
-                      className="h-48 w-full object-cover"
+                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <p className="absolute bottom-3 left-4 text-sm font-semibold text-white">Home Cleaning</p>
-                  </div>
-                  <div className="relative overflow-hidden rounded-2xl">
+                  </Link>
+                  <Link href="/services/office-commercial" className="group relative block overflow-hidden rounded-2xl">
                     <Image
                       src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop"
                       alt="Office cleaning service"
                       width={600}
                       height={400}
-                      className="h-48 w-full object-cover"
+                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <p className="absolute bottom-3 left-4 text-sm font-semibold text-white">Office Cleaning</p>
-                  </div>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -244,7 +321,7 @@ export default function HomePage() {
             {SERVICE_CATEGORIES.map((category) => (
               <Link
                 key={category.title}
-                href={category.title === 'Office & Commercial' ? '/services/office-commercial' : `/book?category=${category.title === 'Home Care' ? 'home_care' : category.title === 'Auto Care' ? 'auto_care' : 'truck_fleet'}`}
+                href={category.href}
                 className="flex items-center gap-4 rounded-2xl bg-neutral-50 p-4 transition-colors active:bg-neutral-100"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary">
@@ -285,10 +362,10 @@ export default function HomePage() {
                       <ArrowRight className="ml-1 h-4 w-4" />
                     </Link>
                     <Link
-                      href={category.title === 'Office & Commercial' ? '/services/office-commercial' : `/book?category=${category.title === 'Home Care' ? 'home_care' : category.title === 'Auto Care' ? 'auto_care' : 'truck_fleet'}`}
+                      href={category.href}
                       className="inline-flex items-center text-sm font-medium text-primary transition-colors hover:text-primary/80"
                     >
-                      Book Now
+                      View Details
                       <ArrowRight className="ml-1 h-4 w-4" />
                     </Link>
                   </div>
