@@ -68,6 +68,32 @@ export async function POST(request: Request) {
       pricing_breakdown,
     } = body
 
+    // --- Server-side validation ---
+    if (!customer_name || typeof customer_name !== 'string' || customer_name.trim().length < 2) {
+      return NextResponse.json({ error: 'Valid customer name is required' }, { status: 400 })
+    }
+    if (!customer_email || typeof customer_email !== 'string' || !customer_email.includes('@')) {
+      return NextResponse.json({ error: 'Valid email address is required' }, { status: 400 })
+    }
+    if (!scheduled_date || !/^\d{4}-\d{2}-\d{2}$/.test(scheduled_date)) {
+      return NextResponse.json({ error: 'Valid scheduled date is required' }, { status: 400 })
+    }
+    if (!scheduled_time || !/^\d{2}:\d{2}/.test(scheduled_time)) {
+      return NextResponse.json({ error: 'Valid scheduled time is required' }, { status: 400 })
+    }
+    if (typeof total !== 'number' || total <= 0 || !Number.isFinite(total)) {
+      return NextResponse.json({ error: 'Total must be a positive number' }, { status: 400 })
+    }
+    if (typeof subtotal !== 'number' || subtotal < 0 || !Number.isFinite(subtotal)) {
+      return NextResponse.json({ error: 'Subtotal must be a non-negative number' }, { status: 400 })
+    }
+    if (typeof deposit_amount !== 'number' || deposit_amount < 0 || !Number.isFinite(deposit_amount)) {
+      return NextResponse.json({ error: 'Deposit amount must be a non-negative number' }, { status: 400 })
+    }
+    if (deposit_amount > total) {
+      return NextResponse.json({ error: 'Deposit cannot exceed total' }, { status: 400 })
+    }
+
     // Generate booking number
     const booking_number = generateBookingNumber()
 
@@ -249,67 +275,68 @@ export async function POST(request: Request) {
     let checkoutUrl: string | null = null
 
     if (deposit_amount > 0) {
-      try {
-        const squareClient = getSquareClient()
-        const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
+      const squareClient = getSquareClient()
+      const origin = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
 
-        // Get service name for line item
-        let serviceName = 'Service'
-        if (service_id) {
-          const { data: svc } = await supabaseAdmin
-            .from('services')
-            .select('name')
-            .eq('id', service_id)
-            .single()
-          if (svc) serviceName = svc.name
-        }
-
-        const paymentLink = await squareClient.checkout.paymentLinks.create({
-          idempotencyKey: crypto.randomUUID(),
-          order: {
-            locationId: getSquareLocationId(),
-            lineItems: [
-              {
-                name: `Yumi Forever - ${serviceName}`,
-                quantity: '1',
-                basePriceMoney: {
-                  amount: BigInt(deposit_amount),
-                  currency: 'USD',
-                },
-              },
-            ],
-            metadata: {
-              booking_id: booking.id,
-              payment_type: 'deposit',
-            },
-            referenceId: booking.id,
-          },
-          checkoutOptions: {
-            redirectUrl: `${origin}/booking-confirmation?booking_id=${booking.id}`,
-          },
-          prePopulatedData: {
-            buyerEmail: customer_email,
-          },
-        })
-
-        checkoutUrl = paymentLink.paymentLink?.url || null
-        const orderId = paymentLink.paymentLink?.orderId
-
-        // Insert payment record
-        if (checkoutUrl) {
-          await supabaseAdmin.from('payments').insert({
-            booking_id: booking.id,
-            profile_id: user?.id || null,
-            amount: deposit_amount,
-            status: 'unpaid',
-            payment_type: 'deposit',
-            square_order_id: orderId || null,
-          })
-        }
-      } catch (squareErr) {
-        console.error('Square checkout creation error:', squareErr)
-        // Don't fail the booking — user can pay later via /pay
+      // Get service name for line item
+      let serviceName = 'Service'
+      if (service_id) {
+        const { data: svc } = await supabaseAdmin
+          .from('services')
+          .select('name')
+          .eq('id', service_id)
+          .single()
+        if (svc) serviceName = svc.name
       }
+
+      const paymentLink = await squareClient.checkout.paymentLinks.create({
+        idempotencyKey: crypto.randomUUID(),
+        order: {
+          locationId: getSquareLocationId(),
+          lineItems: [
+            {
+              name: `Yumi Forever - ${serviceName}`,
+              quantity: '1',
+              basePriceMoney: {
+                amount: BigInt(deposit_amount),
+                currency: 'USD',
+              },
+            },
+          ],
+          metadata: {
+            booking_id: booking.id,
+            payment_type: 'deposit',
+          },
+          referenceId: booking.id,
+        },
+        checkoutOptions: {
+          redirectUrl: `${origin}/booking-confirmation?booking_id=${booking.id}&payment=success`,
+        },
+        prePopulatedData: {
+          buyerEmail: customer_email,
+        },
+      })
+
+      checkoutUrl = paymentLink.paymentLink?.url || null
+      const orderId = paymentLink.paymentLink?.orderId
+
+      if (!checkoutUrl) {
+        console.error('Square returned no checkout URL for booking:', booking.id)
+        return NextResponse.json(
+          { error: 'Failed to create payment checkout. Please try again.' },
+          { status: 500 }
+        )
+      }
+
+      // Insert payment record
+      await supabaseAdmin.from('payments').insert({
+        booking_id: booking.id,
+        profile_id: user?.id || null,
+        amount: deposit_amount,
+        status: 'unpaid',
+        payment_type: 'deposit',
+        square_order_id: orderId || null,
+      })
     }
 
     return NextResponse.json(

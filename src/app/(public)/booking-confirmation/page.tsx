@@ -29,6 +29,7 @@ interface BookingData {
 function BookingConfirmationContent() {
   const searchParams = useSearchParams()
   const bookingId = searchParams.get("booking_id")
+  const justPaid = searchParams.get("payment") === "success"
   const [booking, setBooking] = useState<BookingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -153,9 +154,9 @@ function BookingConfirmationContent() {
               {booking.deposit_amount > 0 && (
                 <div className="mt-2 flex justify-between text-sm">
                   <span className="text-gray-500">
-                    {booking.deposit_paid > 0 ? 'Deposit Paid' : 'Deposit Due'}
+                    {(justPaid || booking.deposit_paid > 0) ? 'Deposit Paid' : 'Deposit Due'}
                   </span>
-                  <span className={`font-medium ${booking.deposit_paid > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                  <span className={`font-medium ${(justPaid || booking.deposit_paid > 0) ? 'text-green-600' : 'text-amber-600'}`}>
                     {formatCurrency(booking.deposit_amount)}
                   </span>
                 </div>
@@ -163,12 +164,17 @@ function BookingConfirmationContent() {
               <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-sm">
                 <span className="text-gray-500">Remaining Balance</span>
                 <span className="font-semibold text-gray-900">
-                  {formatCurrency(booking.remaining_balance)}
+                  {formatCurrency(justPaid ? (booking.total - booking.deposit_amount) : booking.remaining_balance)}
                 </span>
               </div>
-              {booking.payment_status === 'unpaid' && booking.deposit_amount > 0 && (
+              {!justPaid && booking.payment_status === 'unpaid' && booking.deposit_amount > 0 && (
                 <p className="mt-3 text-center text-xs text-amber-600">
                   Complete your deposit payment to confirm this booking.
+                </p>
+              )}
+              {justPaid && (
+                <p className="mt-3 text-center text-xs text-green-600">
+                  Your deposit has been received. Thank you!
                 </p>
               )}
             </div>

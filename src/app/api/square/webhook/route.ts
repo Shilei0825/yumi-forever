@@ -31,26 +31,20 @@ export async function POST(request: Request) {
     }
 
     const signatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY
+    if (!signatureKey) {
+      console.error('SQUARE_WEBHOOK_SIGNATURE_KEY not configured')
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+    }
+
     const webhookUrl =
-      (process.env.NEXT_PUBLIC_SITE_URL || 'https://yumiforever.com') +
+      (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || '') +
       '/api/square/webhook'
 
-    // Verify webhook signature
-    if (signatureKey) {
-      const isValid = verifySquareWebhook(
-        body,
-        signature,
-        signatureKey,
-        webhookUrl
-      )
-
-      if (!isValid) {
-        console.error('Square webhook signature verification failed')
-        return NextResponse.json(
-          { error: 'Invalid signature' },
-          { status: 400 }
-        )
-      }
+    // Verify webhook signature (mandatory in production)
+    const isValid = verifySquareWebhook(body, signature, signatureKey, webhookUrl)
+    if (!isValid) {
+      console.error('Square webhook signature verification failed')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
 
     const event = JSON.parse(body)
@@ -207,6 +201,18 @@ export async function POST(request: Request) {
 
           if (historyError) {
             console.error('Status history insert error:', historyError)
+          }
+        }
+
+        // Mark payment link as used (if this payment came from a payment link)
+        if (paymentLinkToken) {
+          const { error: linkUpdateError } = await supabase
+            .from('payment_links')
+            .update({ paid_at: new Date().toISOString() })
+            .eq('token', paymentLinkToken)
+
+          if (linkUpdateError) {
+            console.error('Payment link update error:', linkUpdateError)
           }
         }
 

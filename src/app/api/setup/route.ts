@@ -19,6 +19,20 @@ export async function POST() {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
+    // Block re-runs: if admin already exists, deny
+    const { data: existingAdmin } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'admin')
+      .limit(1)
+
+    if (existingAdmin && existingAdmin.length > 0) {
+      return NextResponse.json(
+        { error: 'Setup already completed. Admin account exists.' },
+        { status: 403 }
+      )
+    }
+
     const ADMIN_EMAIL = 'linda20010515@gmail.com'
     const ADMIN_PASSWORD = '12345678'
     const ADMIN_NAME = 'Linda Zhang'

@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     }
 
     const origin =
-      request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || ''
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
     const payUrl = `${origin}/pay?token=${paymentLink.token}`
 
     return NextResponse.json({

@@ -99,7 +99,7 @@ export async function POST(
 
     // Get origin for redirect URL
     const origin =
-      request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || ''
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
 
     const serviceName = booking.service?.name || 'Service'
 

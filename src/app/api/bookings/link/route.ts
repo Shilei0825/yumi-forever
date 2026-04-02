@@ -25,33 +25,20 @@ export async function POST() {
 
     let linked = 0
 
-    // Link by email (case-insensitive)
-    if (user.email) {
-      const { data: emailLinked } = await supabaseAdmin
-        .from('bookings')
-        .update({ profile_id: user.id })
-        .is('profile_id', null)
-        .ilike('customer_email', user.email)
-        .select('id')
-
-      linked += emailLinked?.length || 0
+    // Only link by the user's VERIFIED auth email (not profile data, which could be spoofed)
+    const verifiedEmail = user.email
+    if (!verifiedEmail) {
+      return NextResponse.json({ linked: 0 })
     }
 
-    // Link by phone if available (normalize both sides)
-    const phone = profile?.phone
-    if (phone) {
-      const normalizedPhone = phone.replace(/\D/g, '')
-      if (normalizedPhone) {
-        const { data: phoneLinked } = await supabaseAdmin
-          .from('bookings')
-          .update({ profile_id: user.id })
-          .is('profile_id', null)
-          .eq('customer_phone', normalizedPhone)
-          .select('id')
+    const { data: emailLinked } = await supabaseAdmin
+      .from('bookings')
+      .update({ profile_id: user.id })
+      .is('profile_id', null)
+      .ilike('customer_email', verifiedEmail)
+      .select('id')
 
-        linked += phoneLinked?.length || 0
-      }
-    }
+    linked += emailLinked?.length || 0
 
     return NextResponse.json({ linked })
   } catch (error) {

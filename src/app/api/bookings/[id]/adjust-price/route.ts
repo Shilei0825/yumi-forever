@@ -56,6 +56,23 @@ export async function POST(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
+    // If crew, verify they are assigned to this booking
+    if (profile.role === 'crew') {
+      const { data: assignment } = await serviceSupabase
+        .from('dispatch_assignments')
+        .select('id')
+        .eq('booking_id', bookingId)
+        .eq('crew_member_id', user.id)
+        .limit(1)
+
+      if (!assignment || assignment.length === 0) {
+        return NextResponse.json(
+          { error: 'You are not assigned to this booking' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Verify booking exists
     const { data: booking, error: fetchError } = await serviceSupabase
       .from('bookings')

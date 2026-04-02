@@ -83,7 +83,7 @@ export async function POST(request: Request) {
 
     // Get the origin for redirect URL
     const origin =
-      request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || ''
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
 
     // Create Square checkout payment link
     const paymentLink = await squareClient.checkout.paymentLinks.create({

@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     const serviceName = booking.service?.name || 'Service'
     const origin =
-      request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || ''
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
 
     const squareClient = getSquareClient()
 
@@ -130,19 +130,6 @@ export async function POST(request: Request) {
 
     if (paymentError) {
       console.error('Payment record insert error:', paymentError)
-    }
-
-    // Mark payment link as used (if token provided)
-    // Note: moved from pre-payment to checkout creation to prevent reuse
-    if (token) {
-      const { error: updateError } = await supabase
-        .from('payment_links')
-        .update({ paid_at: new Date().toISOString() })
-        .eq('token', token)
-
-      if (updateError) {
-        console.error('Payment link update error:', updateError)
-      }
     }
 
     return NextResponse.json({ url: checkoutUrl })
