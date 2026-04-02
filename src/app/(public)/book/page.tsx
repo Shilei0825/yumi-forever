@@ -412,27 +412,30 @@ function BookingPageInner() {
     try {
       const payload = {
         service_slug: booking.service?.slug,
-        service_name: booking.service?.name,
-        vehicle_type: booking.vehicleType,
+        category: 'auto_care',
+        customer_name: booking.customerName.trim(),
+        customer_email: booking.customerEmail.trim(),
+        customer_phone: booking.customerPhone.trim(),
+        scheduled_date: booking.date,
+        scheduled_time: booking.timeSlot,
+        estimated_duration: booking.service?.duration || 0,
+        subtotal,
+        tax,
+        total,
+        deposit_amount: booking.service?.depositAmount || 0,
+        street: booking.street.trim(),
+        unit: booking.unit.trim() || null,
+        city: booking.city.trim(),
+        state: booking.state.trim(),
+        zip_code: booking.zipCode.trim(),
+        vehicle_class: booking.vehicleType,
+        auto_service_type: booking.service?.slug || null,
         addons: booking.addons.map((id) => {
           const addon = ADDONS.find((a) => a.id === id)
           const price = addon ? getAddonPrice(addon) : 0
           const qty = addon?.quantifiable ? getAddonQuantity(id) : 1
           return { id, name: addon?.name || id, price, quantity: qty }
         }),
-        customer_name: booking.customerName.trim(),
-        customer_email: booking.customerEmail.trim(),
-        customer_phone: booking.customerPhone.trim(),
-        scheduled_date: booking.date,
-        scheduled_time: booking.timeSlot,
-        street: booking.street.trim(),
-        unit: booking.unit.trim() || null,
-        city: booking.city.trim(),
-        state: booking.state.trim(),
-        zip_code: booking.zipCode.trim(),
-        subtotal,
-        tax,
-        total,
       }
 
       const res = await fetch('/api/bookings', {

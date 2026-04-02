@@ -1,10 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { generateBookingNumber, normalizePhone } from '@/lib/utils'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
+    // Use service role for inserts to bypass RLS (guest bookings need this)
+    const supabaseAdmin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
     const body = await request.json()
 
     const {
@@ -46,6 +52,9 @@ export async function POST(request: Request) {
       home_sqft,
       home_bedrooms,
       home_bathrooms,
+      home_carpet_type,
+      home_building_type,
+      price_confidence,
       // Recurring
       recurring_mode,
       remaining_balance,
@@ -64,7 +73,7 @@ export async function POST(request: Request) {
     // Look up service_id by slug if available
     let service_id: string | null = null
     if (service_slug) {
-      const { data: svc } = await supabase
+      const { data: svc } = await supabaseAdmin
         .from('services')
         .select('id')
         .eq('slug', service_slug)
@@ -112,8 +121,8 @@ export async function POST(request: Request) {
       }) : null
     )
 
-    // Insert booking
-    const { data: booking, error: bookingError } = await supabase
+    // Insert booking (use admin client to bypass RLS for guest bookings)
+    const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .insert({
         booking_number,
@@ -157,7 +166,7 @@ export async function POST(request: Request) {
     if (bookingError) {
       console.error('Booking insert error:', bookingError)
       return NextResponse.json(
-        { error: 'Failed to create booking' },
+        { error: `Failed to create booking: ${bookingError.message}`, details: bookingError },
         { status: 500 }
       )
     }
@@ -167,13 +176,12 @@ export async function POST(request: Request) {
       const bookingItems = addons.map(
         (addon: { id: string; name: string; price: number }) => ({
           booking_id: booking.id,
-          addon_id: addon.id,
           name: addon.name,
           price: addon.price,
         })
       )
 
-      const { error: itemsError } = await supabase
+      const { error: itemsError } = await supabaseAdmin
         .from('booking_items')
         .insert(bookingItems)
 
@@ -184,21 +192,18 @@ export async function POST(request: Request) {
 
     // Insert booking details into category-specific tables
     if (category === 'auto_care' && vehicle_class) {
-      const { error: autoError } = await supabase
+      const { error: autoError } = await supabaseAdmin
         .from('booking_auto_details')
         .insert({
           booking_id: booking.id,
           vehicle_class,
-          auto_service_type: auto_service_type || null,
-          condition_level: auto_condition || null,
+          dirtiness_level: auto_condition || null,
           pet_hair: condition_addons.includes('pet_hair'),
           stains: condition_addons.includes('stains'),
           smoke_odor: condition_addons.includes('smoke'),
-          sand_mud: condition_addons.includes('sand_mud'),
           vehicle_make: vehicle_make || null,
           vehicle_model: vehicle_model || null,
-          vehicle_year: vehicle_year || null,
-          vehicle_color: vehicle_color || null,
+          vehicle_year: vehicle_year ? parseInt(String(vehicle_year), 10) : null,
         })
       if (autoError) {
         console.error('Auto details insert error:', autoError)
@@ -206,18 +211,19 @@ export async function POST(request: Request) {
     }
 
     if (category === 'home_care' && (home_sqft || floorplan)) {
-      const { error: homeError } = await supabase
+      const { error: homeError } = await supabaseAdmin
         .from('booking_home_details')
         .insert({
           booking_id: booking.id,
           floorplan: floorplan || null,
-          home_service_type: home_service_type || null,
-          dirtiness_level: home_dirtiness,
-          last_cleaned,
+          dirtiness_level: home_dirtiness || null,
+          last_cleaned: last_cleaned || null,
           special_notes: special_instructions || null,
           sqft: home_sqft || null,
           bedrooms: home_bedrooms || null,
           bathrooms: home_bathrooms || null,
+          carpet_type: home_carpet_type || null,
+          building_type: home_building_type || null,
         })
       if (homeError) {
         console.error('Home details insert error:', homeError)
@@ -225,7 +231,7 @@ export async function POST(request: Request) {
     }
 
     // Insert initial status into booking_status_history
-    const { error: historyError } = await supabase
+    const { error: historyError } = await supabaseAdmin
       .from('booking_status_history')
       .insert({
         booking_id: booking.id,
@@ -250,7 +256,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Create booking error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Internal server error: ${error instanceof Error ? error.message : String(error)}` },
       { status: 500 }
     )
   }

@@ -18,6 +18,8 @@ export type HomeFloorplan = 'studio' | '1bed_1bath' | '2bed_1bath' | '2bed_2bath
 export type HomeServiceType = 'standard' | 'deep' | 'move_in_out' | 'carpet'
 export type HomeDirtiness = 'light' | 'moderate' | 'heavy' | 'very_heavy'
 export type HomeLastCleaned = '1_week' | '2_weeks' | '1_month' | '1_3_months' | '3_plus_months' | 'not_sure'
+export type HomeCarpetType = 'none' | 'bedroom_only' | 'throughout'
+export type HomeBuildingType = 'apartment' | 'house' | 'townhouse'
 
 export interface AutoPriceInput {
   vehicleClass: VehicleClass
@@ -34,6 +36,8 @@ export interface HomePriceInput {
   serviceType: HomeServiceType
   dirtiness: HomeDirtiness
   lastCleaned: HomeLastCleaned
+  carpetType?: HomeCarpetType
+  buildingType?: HomeBuildingType
 }
 
 export interface PriceBreakdown {
@@ -85,11 +89,11 @@ export const AUTO_CONDITION_ADDON_PRICE: Record<AutoConditionAddon, number> = {
 // ---------------------------------------------------------------------------
 
 export const HOME_FLOORPLAN_BASE: Record<HomeFloorplan, number> = {
-  studio: 18000,        // $180
-  '1bed_1bath': 22000,  // $220
-  '2bed_1bath': 27000,  // $270
-  '2bed_2bath': 32000,  // $320
-  '3bed_plus': 39000,   // $390
+  studio: 13000,        // $130
+  '1bed_1bath': 15500,  // $155
+  '2bed_1bath': 18000,  // $180
+  '2bed_2bath': 20000,  // $200
+  '3bed_plus': 25000,   // $250
 }
 
 export const HOME_SERVICE_MULTIPLIER: Record<HomeServiceType, number> = {
@@ -108,11 +112,11 @@ export const HOME_DIRTINESS_MULTIPLIER: Record<HomeDirtiness, number> = {
 
 // Sqft-based pricing (alternative to floorplan)
 export const HOME_SQFT_BASE: { maxSqft: number; price: number; label: string }[] = [
-  { maxSqft: 800,   price: 18000, label: 'Under 800 sqft' },
-  { maxSqft: 1200,  price: 24000, label: '800–1,200 sqft' },
-  { maxSqft: 1800,  price: 30000, label: '1,200–1,800 sqft' },
-  { maxSqft: 2500,  price: 38000, label: '1,800–2,500 sqft' },
-  { maxSqft: Infinity, price: 48000, label: '2,500+ sqft' },
+  { maxSqft: 800,   price: 13000, label: 'Under 800 sqft' },
+  { maxSqft: 1200,  price: 16500, label: '800–1,200 sqft' },
+  { maxSqft: 1800,  price: 20000, label: '1,200–1,800 sqft' },
+  { maxSqft: 2500,  price: 25000, label: '1,800–2,500 sqft' },
+  { maxSqft: Infinity, price: 32000, label: '2,500+ sqft' },
 ]
 
 export function getSqftBasePrice(sqft: number): number {
@@ -136,6 +140,18 @@ export const HOME_LAST_CLEANED_MULTIPLIER: Record<HomeLastCleaned, number> = {
   '1_3_months': 1.2,
   '3_plus_months': 1.35,
   not_sure: 1.15,
+}
+
+export const HOME_CARPET_MULTIPLIER: Record<HomeCarpetType, number> = {
+  none: 0.92,         // hardwood/tile only — easier, less time
+  bedroom_only: 1.0,  // standard
+  throughout: 1.12,   // full carpet — more vacuuming/extraction
+}
+
+export const HOME_BUILDING_MULTIPLIER: Record<HomeBuildingType, number> = {
+  apartment: 1.0,     // standard
+  townhouse: 1.05,    // stairs, slightly more area
+  house: 1.1,         // more area, multiple floors, garage access
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +216,18 @@ export const HOME_LAST_CLEANED_LABEL: Record<HomeLastCleaned, string> = {
   '1_3_months': '1–3 months ago',
   '3_plus_months': '3+ months ago',
   not_sure: 'Not sure',
+}
+
+export const HOME_CARPET_LABEL: Record<HomeCarpetType, string> = {
+  none: 'No carpet (hardwood / tile)',
+  bedroom_only: 'Carpet in bedrooms only',
+  throughout: 'Carpet throughout',
+}
+
+export const HOME_BUILDING_LABEL: Record<HomeBuildingType, string> = {
+  apartment: 'Apartment / Condo',
+  house: 'House',
+  townhouse: 'Townhouse',
 }
 
 // ---------------------------------------------------------------------------
@@ -272,38 +300,50 @@ export function calculateHomePrice(input: HomePriceInput): PriceBreakdown {
     sizeLabel = 'Studio (default)'
   }
 
-  // Room-based adjustments (per extra bedroom/bathroom)
+  // Room-based adjustments — only apply when using floorplan (not sqft)
+  // because sqft already captures the total space size
   const bedrooms = input.bedrooms || 0
   const bathrooms = input.bathrooms || 0
   let roomAddon = 0
-  if (bedrooms > 0) {
-    // $25 per bedroom
-    roomAddon += bedrooms * 2500
-  }
-  if (bathrooms > 0) {
-    // $35 per bathroom (bathrooms are more labor-intensive)
-    roomAddon += bathrooms * 3500
+  const usingSqft = !!(input.sqft && input.sqft > 0)
+  if (!usingSqft) {
+    if (bedrooms > 0) {
+      // $20 per bedroom
+      roomAddon += bedrooms * 2000
+    }
+    if (bathrooms > 0) {
+      // $25 per bathroom (bathrooms are more labor-intensive)
+      roomAddon += bathrooms * 2500
+    }
   }
 
   const serviceMultiplier = HOME_SERVICE_MULTIPLIER[input.serviceType]
   const dirtinessMultiplier = HOME_DIRTINESS_MULTIPLIER[input.dirtiness]
   const lastCleanedMultiplier = HOME_LAST_CLEANED_MULTIPLIER[input.lastCleaned]
+  const carpetMultiplier = input.carpetType ? HOME_CARPET_MULTIPLIER[input.carpetType] : 1.0
+  const buildingMultiplier = input.buildingType ? HOME_BUILDING_MULTIPLIER[input.buildingType] : 1.0
 
-  const combinedMultiplier = serviceMultiplier * dirtinessMultiplier * lastCleanedMultiplier
+  const combinedMultiplier = serviceMultiplier * dirtinessMultiplier * lastCleanedMultiplier * carpetMultiplier * buildingMultiplier
 
   const lineItems: { label: string; amount: number }[] = [
     { label: `Home: ${sizeLabel}`, amount: base },
   ]
 
-  if (bedrooms > 0) {
-    lineItems.push({ label: `${bedrooms} bedroom${bedrooms > 1 ? 's' : ''} (+$${(bedrooms * 25)})`, amount: bedrooms * 2500 })
+  if (!usingSqft && bedrooms > 0) {
+    lineItems.push({ label: `${bedrooms} bedroom${bedrooms > 1 ? 's' : ''} (+$${(bedrooms * 20)})`, amount: bedrooms * 2000 })
   }
-  if (bathrooms > 0) {
-    lineItems.push({ label: `${bathrooms} bathroom${bathrooms > 1 ? 's' : ''} (+$${(bathrooms * 35)})`, amount: bathrooms * 3500 })
+  if (!usingSqft && bathrooms > 0) {
+    lineItems.push({ label: `${bathrooms} bathroom${bathrooms > 1 ? 's' : ''} (+$${(bathrooms * 25)})`, amount: bathrooms * 2500 })
   }
 
   if (serviceMultiplier !== 1) {
     lineItems.push({ label: `Service: ${HOME_SERVICE_LABEL[input.serviceType]} (×${serviceMultiplier})`, amount: 0 })
+  }
+  if (input.carpetType && carpetMultiplier !== 1) {
+    lineItems.push({ label: `Flooring: ${HOME_CARPET_LABEL[input.carpetType]} (×${carpetMultiplier})`, amount: 0 })
+  }
+  if (input.buildingType && buildingMultiplier !== 1) {
+    lineItems.push({ label: `Building: ${HOME_BUILDING_LABEL[input.buildingType]} (×${buildingMultiplier})`, amount: 0 })
   }
 
   const rawSubtotal = (base + roomAddon) * combinedMultiplier
@@ -318,7 +358,7 @@ export function calculateHomePrice(input: HomePriceInput): PriceBreakdown {
     subtotal,
     tax,
     total,
-    label: `(${formatDollars(base)} + ${formatDollars(roomAddon)}) × ${serviceMultiplier} × ${dirtinessMultiplier} × ${lastCleanedMultiplier}`,
+    label: `(${formatDollars(base)} + ${formatDollars(roomAddon)}) × ${serviceMultiplier} × ${dirtinessMultiplier} × ${lastCleanedMultiplier} × ${carpetMultiplier} × ${buildingMultiplier}`,
     lineItems,
   }
 }
@@ -403,4 +443,67 @@ export function estimateHomeDuration(serviceType: HomeServiceType, floorplan: Ho
     '3bed_plus': 1.4,
   }
   return Math.round(baseDuration[serviceType] * sizeMultiplier[floorplan])
+}
+
+// ---------------------------------------------------------------------------
+// Price Confidence — tells the user how likely the price is to change
+// ---------------------------------------------------------------------------
+
+export interface PriceConfidence {
+  percent: number // 0–100
+  missing: { field: string; impact: string }[]
+  message: string
+}
+
+export function getHomePriceConfidence(input: {
+  hasFloorplanOrSqft: boolean
+  hasBedrooms: boolean
+  hasBathrooms: boolean
+  hasCarpetType: boolean
+  hasBuildingType: boolean
+  hasDirtiness: boolean
+  hasLastCleaned: boolean
+}): PriceConfidence {
+  const missing: { field: string; impact: string }[] = []
+  let confidence = 100
+
+  if (!input.hasFloorplanOrSqft) {
+    missing.push({ field: 'Home size', impact: 'Price could vary up to 50%' })
+    confidence -= 35
+  }
+  if (!input.hasBedrooms || !input.hasBathrooms) {
+    missing.push({ field: 'Room count', impact: 'Price may adjust +$25-35 per room' })
+    confidence -= 10
+  }
+  if (!input.hasCarpetType) {
+    missing.push({ field: 'Flooring type', impact: 'Price may adjust ±8%' })
+    confidence -= 8
+  }
+  if (!input.hasBuildingType) {
+    missing.push({ field: 'Building type', impact: 'Price may adjust up to +10%' })
+    confidence -= 7
+  }
+  if (!input.hasDirtiness) {
+    missing.push({ field: 'Condition level', impact: 'Price could increase up to 55%' })
+    confidence -= 25
+  }
+  if (!input.hasLastCleaned) {
+    missing.push({ field: 'Last cleaned date', impact: 'Price may adjust up to +35%' })
+    confidence -= 15
+  }
+
+  confidence = Math.max(0, confidence)
+
+  let message: string
+  if (confidence >= 90) {
+    message = 'High accuracy — this quote is very close to your final price.'
+  } else if (confidence >= 70) {
+    message = 'Good estimate — final price may vary slightly based on missing details.'
+  } else if (confidence >= 50) {
+    message = 'Rough estimate — providing more details will give you a more accurate quote.'
+  } else {
+    message = 'Very rough estimate — please fill in more details for an accurate quote.'
+  }
+
+  return { percent: confidence, missing, message }
 }

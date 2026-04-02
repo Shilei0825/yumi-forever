@@ -20,12 +20,17 @@ import {
   HOME_DIRTINESS_LABEL,
   HOME_LAST_CLEANED_LABEL,
   HOME_SERVICE_LABEL,
+  HOME_CARPET_LABEL,
+  HOME_BUILDING_LABEL,
   calculateHomePrice,
   estimateHomeDuration,
+  getHomePriceConfidence,
   type HomeFloorplan,
   type HomeDirtiness,
   type HomeLastCleaned,
   type HomeServiceType,
+  type HomeCarpetType,
+  type HomeBuildingType,
   type PriceBreakdown,
 } from '@/lib/pricing-engine'
 import { PriceAppealDialog } from '@/components/price-appeal-dialog'
@@ -41,6 +46,8 @@ interface HomeBookingState {
   sqft: string
   bedrooms: string
   bathrooms: string
+  carpetType: HomeCarpetType | ''
+  buildingType: HomeBuildingType | ''
   dirtiness: HomeDirtiness | ''
   lastCleaned: HomeLastCleaned | ''
   date: string
@@ -81,6 +88,8 @@ const INITIAL_STATE: HomeBookingState = {
   sqft: '',
   bedrooms: '',
   bathrooms: '',
+  carpetType: '',
+  buildingType: '',
   dirtiness: '',
   lastCleaned: '',
   date: '',
@@ -344,6 +353,8 @@ function HomeBookingPageInner() {
       serviceType: booking.serviceType as HomeServiceType,
       dirtiness: booking.dirtiness as HomeDirtiness,
       lastCleaned: booking.lastCleaned as HomeLastCleaned,
+      carpetType: booking.carpetType || undefined,
+      buildingType: booking.buildingType || undefined,
     })
   }, [
     booking.serviceType,
@@ -351,9 +362,24 @@ function HomeBookingPageInner() {
     booking.sqft,
     booking.bedrooms,
     booking.bathrooms,
+    booking.carpetType,
+    booking.buildingType,
     booking.dirtiness,
     booking.lastCleaned,
   ])
+
+  // ----- Price confidence -----
+  const priceConfidence = useMemo(() => {
+    return getHomePriceConfidence({
+      hasFloorplanOrSqft: !!(booking.floorplan || booking.sqft),
+      hasBedrooms: !!booking.bedrooms,
+      hasBathrooms: !!booking.bathrooms,
+      hasCarpetType: !!booking.carpetType,
+      hasBuildingType: !!booking.buildingType,
+      hasDirtiness: !!booking.dirtiness,
+      hasLastCleaned: !!booking.lastCleaned,
+    })
+  }, [booking.floorplan, booking.sqft, booking.bedrooms, booking.bathrooms, booking.carpetType, booking.buildingType, booking.dirtiness, booking.lastCleaned])
 
   // ----- Add-on pricing -----
   const addonTotal = useMemo(() => {
@@ -477,7 +503,10 @@ function HomeBookingPageInner() {
         home_sqft: booking.sqft ? parseInt(booking.sqft, 10) : null,
         home_bedrooms: booking.bedrooms ? parseInt(booking.bedrooms, 10) : null,
         home_bathrooms: booking.bathrooms ? parseInt(booking.bathrooms, 10) : null,
+        home_carpet_type: booking.carpetType || null,
+        home_building_type: booking.buildingType || null,
         pricing_breakdown: priceResult,
+        price_confidence: priceConfidence.percent,
         addons: booking.addons.map((id) => {
           const addon = HOME_ADDONS.find((a) => a.id === id)
           return { id, name: addon?.name ?? id, price: addon?.price ?? 0 }
@@ -689,6 +718,98 @@ function HomeBookingPageInner() {
                 onChange={(e) => updateBooking('bathrooms', e.target.value)}
               />
             </div>
+
+            {/* Building Type */}
+            <div className="mt-8">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Building Type <span className="text-gray-400">(optional)</span>
+              </label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {(Object.keys(HOME_BUILDING_LABEL) as HomeBuildingType[]).map((key) => {
+                  const isSelected = booking.buildingType === key
+                  return (
+                    <div
+                      key={key}
+                      className={cn(
+                        'cursor-pointer rounded-lg border bg-white p-3 text-center transition-colors',
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                      onClick={() => updateBooking('buildingType', key)}
+                    >
+                      <span className="text-sm font-medium text-gray-900">
+                        {HOME_BUILDING_LABEL[key]}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Carpet / Flooring Type */}
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Flooring <span className="text-gray-400">(optional)</span>
+              </label>
+              <div className="space-y-2">
+                {(Object.keys(HOME_CARPET_LABEL) as HomeCarpetType[]).map((key) => {
+                  const isSelected = booking.carpetType === key
+                  return (
+                    <div
+                      key={key}
+                      className={cn(
+                        'cursor-pointer rounded-lg border bg-white p-3 transition-colors',
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                      onClick={() => updateBooking('carpetType', key)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-900">
+                          {HOME_CARPET_LABEL[key]}
+                        </span>
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-300">
+                          {isSelected && <div className="h-3 w-3 rounded-full bg-primary" />}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Price Confidence Indicator */}
+            {priceConfidence.missing.length > 0 && (
+              <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-2 flex-1 rounded-full bg-gray-200">
+                    <div
+                      className={cn(
+                        'h-2 rounded-full transition-all',
+                        priceConfidence.percent >= 80 ? 'bg-green-500' :
+                        priceConfidence.percent >= 60 ? 'bg-yellow-500' : 'bg-orange-500'
+                      )}
+                      style={{ width: `${priceConfidence.percent}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-600 shrink-0">
+                    {priceConfidence.percent}% accurate
+                  </span>
+                </div>
+                <p className="text-xs text-blue-800 mb-2">{priceConfidence.message}</p>
+                {priceConfidence.missing.length > 0 && (
+                  <ul className="space-y-1">
+                    {priceConfidence.missing.map((m) => (
+                      <li key={m.field} className="text-xs text-blue-700">
+                        <span className="font-medium">{m.field}:</span> {m.impact}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             <div className="mt-8 flex items-center justify-between">
               <Button variant="outline" onClick={goBack}>
@@ -1170,6 +1291,18 @@ function HomeBookingPageInner() {
                       <span className="text-gray-500">Bathrooms:</span> {booking.bathrooms}
                     </p>
                   )}
+                  {booking.buildingType && (
+                    <p className="text-gray-900">
+                      <span className="text-gray-500">Building:</span>{' '}
+                      {HOME_BUILDING_LABEL[booking.buildingType as HomeBuildingType]}
+                    </p>
+                  )}
+                  {booking.carpetType && (
+                    <p className="text-gray-900">
+                      <span className="text-gray-500">Flooring:</span>{' '}
+                      {HOME_CARPET_LABEL[booking.carpetType as HomeCarpetType]}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1340,6 +1473,35 @@ function HomeBookingPageInner() {
                   </div>
                 </div>
               </div>
+
+              {/* Price Confidence */}
+              {priceConfidence.missing.length > 0 && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-2 flex-1 rounded-full bg-gray-200">
+                      <div
+                        className={cn(
+                          'h-2 rounded-full',
+                          priceConfidence.percent >= 80 ? 'bg-green-500' :
+                          priceConfidence.percent >= 60 ? 'bg-yellow-500' : 'bg-orange-500'
+                        )}
+                        style={{ width: `${priceConfidence.percent}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-600 shrink-0">
+                      {priceConfidence.percent}% accurate
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-800">{priceConfidence.message}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {priceConfidence.missing.map((m) => (
+                      <li key={m.field} className="text-xs text-blue-700">
+                        <span className="font-medium">{m.field}:</span> {m.impact}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Price Appeal */}
               {selectedService && (

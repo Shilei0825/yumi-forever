@@ -240,35 +240,37 @@ export default function ServicesPage() {
                       /* Office & Commercial: plan cards */
                       <div className="grid gap-4 sm:grid-cols-3">
                         {OFFICE_PLANS.map((plan) => (
-                          <Card key={plan.slug} className={`h-full ${plan.popular ? 'border-primary/30 ring-1 ring-primary/10' : ''}`}>
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center gap-2">
-                                <CardTitle className="text-base">{plan.name}</CardTitle>
-                                {plan.popular && (
-                                  <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
-                                    Most Popular
+                          <Link key={plan.slug} href="/services/office-commercial" className="block">
+                            <Card className={`h-full transition-colors hover:border-neutral-400 ${plan.popular ? 'border-primary/30 ring-1 ring-primary/10' : ''}`}>
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center gap-2">
+                                  <CardTitle className="text-base">{plan.name}</CardTitle>
+                                  {plan.popular && (
+                                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">
+                                      Most Popular
+                                    </span>
+                                  )}
+                                </div>
+                                <CardDescription>{plan.description}</CardDescription>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="mb-3">
+                                  <span className="text-lg font-bold text-neutral-900">
+                                    {formatCurrency(plan.pricing.small.monthly)}
                                   </span>
-                                )}
-                              </div>
-                              <CardDescription>{plan.description}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="mb-3">
-                                <span className="text-lg font-bold text-neutral-900">
-                                  {formatCurrency(plan.pricing.small.monthly)}
-                                </span>
-                                <span className="text-xs text-neutral-500">/mo starting</span>
-                              </div>
-                              <ul className="space-y-1.5">
-                                {plan.features.slice(0, 4).map((f) => (
-                                  <li key={f} className="flex items-start gap-1.5 text-xs text-neutral-600">
-                                    <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-violet-700" />
-                                    {f}
-                                  </li>
-                                ))}
-                              </ul>
-                            </CardContent>
-                          </Card>
+                                  <span className="text-xs text-neutral-500">/mo starting</span>
+                                </div>
+                                <ul className="space-y-1.5">
+                                  {plan.features.slice(0, 4).map((f) => (
+                                    <li key={f} className="flex items-start gap-1.5 text-xs text-neutral-600">
+                                      <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-violet-700" />
+                                      {f}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </CardContent>
+                            </Card>
+                          </Link>
                         ))}
                       </div>
                     ) : (
