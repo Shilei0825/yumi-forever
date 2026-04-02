@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useCallback, useEffect, useMemo } from 'react'
+import { Suspense, useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
@@ -30,6 +30,8 @@ import {
 } from '@/lib/constants'
 import type { ServiceDefinition } from '@/lib/constants'
 import { PriceAppealDialog } from '@/components/price-appeal-dialog'
+import { ConfidenceBar } from '@/components/ui/confidence-bar'
+import { getAutoPriceConfidence } from '@/lib/pricing-engine'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,6 +52,7 @@ interface BookingState {
   customerName: string
   customerEmail: string
   customerPhone: string
+  specialNotes: string
   consentChecked: boolean
 }
 
@@ -83,6 +86,7 @@ const INITIAL_STATE: BookingState = {
   customerName: '',
   customerEmail: '',
   customerPhone: '',
+  specialNotes: '',
   consentChecked: false,
 }
 
@@ -348,6 +352,66 @@ function BookingPageInner() {
   const tax = Math.round(subtotal * TAX_RATE)
   const total = subtotal + tax
 
+  // ----- AI analysis state -----
+  const [aiAdjustment, setAiAdjustment] = useState(0)
+  const [aiSuggestion, setAiSuggestion] = useState('')
+  const [aiFactors, setAiFactors] = useState<string[]>([])
+  const [aiLoading, setAiLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounced Gemini analysis when special notes change
+  useEffect(() => {
+    if (!booking.specialNotes || booking.specialNotes.trim().length < 10) {
+      setAiAdjustment(0)
+      setAiSuggestion('')
+      setAiFactors([])
+      return
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(async () => {
+      setAiLoading(true)
+      try {
+        const res = await fetch('/api/analyze-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'auto_care',
+            notes: booking.specialNotes,
+            vehicleType: booking.vehicleType,
+            serviceType: booking.service?.slug || '',
+            condition: '',
+          }),
+        })
+        const data = await res.json()
+        setAiAdjustment(data.confidenceAdjustment || 0)
+        setAiSuggestion(data.suggestion || '')
+        setAiFactors(data.factors || [])
+      } catch {
+        // AI analysis is optional
+      } finally {
+        setAiLoading(false)
+      }
+    }, 800)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [booking.specialNotes, booking.vehicleType, booking.service])
+
+  // ----- Price confidence -----
+  const priceConfidence = useMemo(() => {
+    return getAutoPriceConfidence({
+      hasVehicleType: !!booking.vehicleType,
+      hasServiceType: !!booking.service,
+      hasCondition: true, // auto form doesn't have separate condition step — always true
+      hasAddons: true, // add-ons step is always visited
+      hasSpecialNotes: !!booking.specialNotes.trim(),
+      aiAdjustment,
+    })
+  }, [booking.vehicleType, booking.service, booking.specialNotes, aiAdjustment])
+
   // ----- Validation helpers -----
 
   function validateSchedule(): boolean {
@@ -430,6 +494,8 @@ function BookingPageInner() {
         zip_code: booking.zipCode.trim(),
         vehicle_class: booking.vehicleType,
         auto_service_type: booking.service?.slug || null,
+        special_instructions: booking.specialNotes.trim() || null,
+        price_confidence: priceConfidence.percent,
         addons: booking.addons.map((id) => {
           const addon = ADDONS.find((a) => a.id === id)
           const price = addon ? getAddonPrice(addon) : 0
@@ -851,6 +917,39 @@ function BookingPageInner() {
               })}
             </div>
 
+            {/* Special Notes */}
+            <div className="mt-8">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Vehicle Details <span className="text-gray-400">(optional)</span>
+              </label>
+              <p className="mb-2 text-xs text-gray-500">
+                Describe your vehicle&apos;s condition to improve quote accuracy.
+              </p>
+              <textarea
+                rows={3}
+                placeholder="E.g., leather interior with some stains, pet hair in back seat, tree sap on hood, smoke odor, aftermarket tint..."
+                value={booking.specialNotes}
+                onChange={(e) => updateBooking('specialNotes', e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            {/* Quote Accuracy */}
+            <div className="mt-6">
+              <ConfidenceBar
+                confidence={priceConfidence.percent}
+                message={priceConfidence.message}
+                aiSuggestion={aiSuggestion}
+                aiFactors={aiFactors}
+                aiLoading={aiLoading}
+                tips={[
+                  ...(!booking.vehicleType ? ['Select your vehicle type'] : []),
+                  ...(!booking.service ? ['Choose a service'] : []),
+                  ...(!booking.specialNotes.trim() ? ['Describe your vehicle condition for better accuracy'] : []),
+                ]}
+              />
+            </div>
+
             {/* Running total */}
             <div className="mt-8 rounded-lg border border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between text-sm text-gray-600">
@@ -1241,6 +1340,14 @@ function BookingPageInner() {
                   </div>
                 </div>
               </div>
+
+              {/* Price Confidence */}
+              <ConfidenceBar
+                confidence={priceConfidence.percent}
+                message={priceConfidence.message}
+                aiSuggestion={aiSuggestion}
+                aiFactors={aiFactors}
+              />
 
               {/* Price Appeal */}
               {booking.service && (

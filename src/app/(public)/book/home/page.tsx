@@ -10,11 +10,11 @@ import {
   Loader2,
   CreditCard,
   ChevronDown,
-  Info,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ConfidenceBar } from '@/components/ui/confidence-bar'
 import { cn, formatCurrency, formatTime } from '@/lib/utils'
 import { HOME_SERVICES, HOME_ADDONS, TIME_SLOTS, TAX_RATE, calculateTravelFee } from '@/lib/constants'
 import {
@@ -27,9 +27,6 @@ import {
   calculateHomePrice,
   estimateHomeDuration,
   getHomePriceConfidence,
-  getConfidenceColor,
-  getConfidenceTextColor,
-  getConfidenceBorderColor,
   type HomeFloorplan,
   type HomeDirtiness,
   type HomeLastCleaned,
@@ -420,7 +417,6 @@ function HomeBookingPageInner() {
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [aiFactors, setAiFactors] = useState<string[]>([])
   const [aiLoading, setAiLoading] = useState(false)
-  const [showTips, setShowTips] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Debounced Gemini analysis when layout notes change
@@ -882,64 +878,26 @@ function HomeBookingPageInner() {
                 onChange={(e) => updateBooking('layoutNotes', e.target.value)}
                 className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
-              {aiLoading && (
-                <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Analyzing your layout...
-                </p>
-              )}
-              {aiSuggestion && !aiLoading && (
-                <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
-                  <p className="text-xs text-blue-800">{aiSuggestion}</p>
-                  {aiFactors.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {aiFactors.map((f, i) => (
-                        <span key={i} className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                          {f}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Quote Accuracy Indicator */}
-            <div className={cn('mt-6 rounded-lg border p-4', getConfidenceBorderColor(priceConfidence.percent))}>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="h-2.5 flex-1 rounded-full bg-gray-200">
-                  <div
-                    className={cn('h-2.5 rounded-full transition-all duration-500', getConfidenceColor(priceConfidence.percent))}
-                    style={{ width: `${priceConfidence.percent}%` }}
-                  />
-                </div>
-                <span className={cn('text-xs font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
-                  {priceConfidence.percent}%
-                </span>
-              </div>
-              <p className={cn('text-xs font-medium', getConfidenceTextColor(priceConfidence.percent))}>
-                Quote Accuracy: {priceConfidence.message}
-              </p>
-
-              {/* Tips toggle */}
-              <button
-                type="button"
-                onClick={() => setShowTips(!showTips)}
-                className="mt-2 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700"
-              >
-                <Info className="h-3 w-3" />
-                {showTips ? 'Hide tips' : 'How to get the most accurate quote'}
-              </button>
-              {showTips && (
-                <ul className="mt-2 space-y-1 text-xs text-gray-600">
-                  {!booking.buildingType && <li>- Select your building type</li>}
-                  {!booking.bedrooms && <li>- Choose number of bedrooms</li>}
-                  {!booking.bathrooms && <li>- Choose number of bathrooms</li>}
-                  {!booking.sqft && <li>- Select your approximate square footage</li>}
-                  {!booking.carpetType && <li>- Select your flooring type</li>}
-                  {!booking.dirtiness && <li>- Tell us about the current condition (next step)</li>}
-                  {!booking.layoutNotes.trim() && <li>- Describe any special areas or unique layout features</li>}
-                </ul>
-              )}
+            <div className="mt-6">
+              <ConfidenceBar
+                confidence={priceConfidence.percent}
+                message={priceConfidence.message}
+                aiSuggestion={aiSuggestion}
+                aiFactors={aiFactors}
+                aiLoading={aiLoading}
+                tips={[
+                  ...(!booking.buildingType ? ['Select your building type'] : []),
+                  ...(!booking.bedrooms ? ['Choose number of bedrooms'] : []),
+                  ...(!booking.bathrooms ? ['Choose number of bathrooms'] : []),
+                  ...(!booking.sqft ? ['Select your approximate square footage'] : []),
+                  ...(!booking.carpetType ? ['Select your flooring type'] : []),
+                  ...(!booking.dirtiness ? ['Tell us about the current condition (next step)'] : []),
+                  ...(!booking.layoutNotes.trim() ? ['Describe any special areas or unique layout features'] : []),
+                ]}
+              />
             </div>
 
             <div className="mt-8 flex items-center justify-between">
@@ -975,13 +933,8 @@ function HomeBookingPageInner() {
             </p>
 
             {/* Persistent confidence bar */}
-            <div className={cn('mb-6 flex items-center gap-2 rounded-lg border px-3 py-2', getConfidenceBorderColor(priceConfidence.percent))}>
-              <div className="h-1.5 flex-1 rounded-full bg-gray-200">
-                <div className={cn('h-1.5 rounded-full transition-all', getConfidenceColor(priceConfidence.percent))} style={{ width: `${priceConfidence.percent}%` }} />
-              </div>
-              <span className={cn('text-[10px] font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
-                Quote accuracy: {priceConfidence.percent}%
-              </span>
+            <div className="mb-6">
+              <ConfidenceBar confidence={priceConfidence.percent} message={priceConfidence.message} compact />
             </div>
 
             {/* Dirtiness level */}
@@ -1087,13 +1040,8 @@ function HomeBookingPageInner() {
             </p>
 
             {/* Persistent confidence bar */}
-            <div className={cn('mb-6 flex items-center gap-2 rounded-lg border px-3 py-2', getConfidenceBorderColor(priceConfidence.percent))}>
-              <div className="h-1.5 flex-1 rounded-full bg-gray-200">
-                <div className={cn('h-1.5 rounded-full transition-all', getConfidenceColor(priceConfidence.percent))} style={{ width: `${priceConfidence.percent}%` }} />
-              </div>
-              <span className={cn('text-[10px] font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
-                Quote accuracy: {priceConfidence.percent}%
-              </span>
+            <div className="mb-6">
+              <ConfidenceBar confidence={priceConfidence.percent} message={priceConfidence.message} compact />
             </div>
 
             <div className="space-y-3">
@@ -1647,25 +1595,13 @@ function HomeBookingPageInner() {
               </div>
 
               {/* Price Confidence */}
-              <div className={cn('rounded-lg border p-4', getConfidenceBorderColor(priceConfidence.percent))}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-2.5 flex-1 rounded-full bg-gray-200">
-                    <div
-                      className={cn('h-2.5 rounded-full transition-all', getConfidenceColor(priceConfidence.percent))}
-                      style={{ width: `${priceConfidence.percent}%` }}
-                    />
-                  </div>
-                  <span className={cn('text-xs font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
-                    {priceConfidence.percent}%
-                  </span>
-                </div>
-                <p className={cn('text-xs font-medium', getConfidenceTextColor(priceConfidence.percent))}>
-                  Quote Accuracy: {priceConfidence.message}
-                </p>
-                {aiSuggestion && (
-                  <p className="mt-1 text-xs text-gray-600">{aiSuggestion}</p>
-                )}
-              </div>
+              <ConfidenceBar
+                confidence={priceConfidence.percent}
+                message={priceConfidence.message}
+                aiSuggestion={aiSuggestion}
+                aiFactors={aiFactors}
+                aiLoading={aiLoading}
+              />
 
               {/* Price Appeal */}
               {selectedService && (

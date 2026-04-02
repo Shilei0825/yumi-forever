@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useCallback, useEffect, useMemo } from 'react'
+import { Suspense, useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
@@ -41,6 +41,8 @@ import {
   type CommercialQuote,
 } from '@/lib/constants'
 import { PriceAppealDialog } from '@/components/price-appeal-dialog'
+import { ConfidenceBar } from '@/components/ui/confidence-bar'
+import { getOfficePriceConfidence } from '@/lib/pricing-engine'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -398,6 +400,70 @@ function OfficeBookingPageInner() {
     effectiveSqft,
   ])
 
+  // ----- AI analysis state -----
+  const [aiAdjustment, setAiAdjustment] = useState(0)
+  const [aiSuggestion, setAiSuggestion] = useState('')
+  const [aiFactors, setAiFactors] = useState<string[]>([])
+  const [aiLoading, setAiLoading] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounced Gemini analysis when special requirements change
+  useEffect(() => {
+    if (!booking.specialRequirements || booking.specialRequirements.trim().length < 10) {
+      setAiAdjustment(0)
+      setAiSuggestion('')
+      setAiFactors([])
+      return
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(async () => {
+      setAiLoading(true)
+      try {
+        const res = await fetch('/api/analyze-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            category: 'office',
+            notes: booking.specialRequirements,
+            businessType: booking.businessType,
+            spaceSize: String(effectiveSqft),
+            restrooms: booking.restrooms,
+            serviceLevel: booking.planTier,
+            frequency: booking.frequency,
+          }),
+        })
+        const data = await res.json()
+        setAiAdjustment(data.confidenceAdjustment || 0)
+        setAiSuggestion(data.suggestion || '')
+        setAiFactors(data.factors || [])
+      } catch {
+        // AI analysis is optional
+      } finally {
+        setAiLoading(false)
+      }
+    }, 800)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [booking.specialRequirements, booking.businessType, effectiveSqft, booking.restrooms, booking.planTier, booking.frequency])
+
+  // ----- Price confidence -----
+  const priceConfidence = useMemo(() => {
+    return getOfficePriceConfidence({
+      hasBusinessType: !!booking.businessType,
+      hasSpaceSize: !!booking.sqftRange,
+      hasRestrooms: !!booking.restrooms && parseInt(booking.restrooms) >= 0,
+      hasServiceLevel: !!booking.planTier,
+      hasFrequency: !!booking.frequency,
+      hasContract: booking.contractMonths > 1,
+      hasSpecialNotes: !!booking.specialRequirements.trim(),
+      aiAdjustment,
+    })
+  }, [booking.businessType, booking.sqftRange, booking.restrooms, booking.planTier, booking.frequency, booking.contractMonths, booking.specialRequirements, aiAdjustment])
+
   // ----- Validation helpers -----
 
   function validateSpaceDetails(): boolean {
@@ -492,6 +558,7 @@ function OfficeBookingPageInner() {
           quote_breakdown: quote?.lineItems,
         }),
         recurring_mode: booking.frequency,
+        price_confidence: priceConfidence.percent,
       }
 
       const res = await fetch('/api/bookings', {
@@ -716,6 +783,21 @@ function OfficeBookingPageInner() {
                 onChange={(e) => updateBooking('restrooms', e.target.value)}
                 error={errors.restrooms}
                 className="max-w-xs"
+              />
+            </div>
+
+            {/* Quote Accuracy */}
+            <div className="mt-6">
+              <ConfidenceBar
+                confidence={priceConfidence.percent}
+                message={priceConfidence.message}
+                tips={[
+                  ...(!booking.businessType ? ['Select your business type'] : []),
+                  ...(!booking.sqftRange ? ['Choose your space size'] : []),
+                  ...(!booking.planTier ? ['Select a service level (next step)'] : []),
+                  ...(!booking.frequency ? ['Choose cleaning frequency (upcoming step)'] : []),
+                  ...(!booking.specialRequirements.trim() ? ['Add special requirements for better accuracy (later step)'] : []),
+                ]}
               />
             </div>
 
@@ -1375,6 +1457,14 @@ function OfficeBookingPageInner() {
                   </div>
                 </div>
               )}
+
+              {/* Price Confidence */}
+              <ConfidenceBar
+                confidence={priceConfidence.percent}
+                message={priceConfidence.message}
+                aiSuggestion={aiSuggestion}
+                aiFactors={aiFactors}
+              />
 
               {/* Price Appeal */}
               {selectedPlan && quote && (

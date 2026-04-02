@@ -20,24 +20,27 @@ export interface HistoricalData {
   commonReasons: string[]
 }
 
-export interface HomeAnalysisResult {
+export interface QuoteAnalysisResult {
   factors: string[]
   confidenceAdjustment: number
   suggestion: string
 }
 
-export async function analyzeHomeNotes(
+// Keep old type for backward compatibility
+export type HomeAnalysisResult = QuoteAnalysisResult
+
+export type QuoteCategory = 'auto_care' | 'home_care' | 'office'
+
+// ---------------------------------------------------------------------------
+// Unified quote analysis — works for all service categories
+// ---------------------------------------------------------------------------
+
+export async function analyzeQuoteNotes(
+  category: QuoteCategory,
   notes: string,
-  context: {
-    bedrooms?: string
-    bathrooms?: string
-    sqft?: string
-    buildingType?: string
-    carpetType?: string
-    serviceType?: string
-  },
+  details: Record<string, string>,
   historicalData?: HistoricalData
-): Promise<HomeAnalysisResult> {
+): Promise<QuoteAnalysisResult> {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY
   if (!apiKey) {
     return { factors: [], confidenceAdjustment: 0, suggestion: '' }
@@ -51,31 +54,71 @@ Historical data from ${historicalData.matchCount} similar past bookings:
 - Average price deviation when adjusted: ${historicalData.avgDeviation.toFixed(1)}%
 - Common adjustment reasons: ${historicalData.commonReasons.length > 0 ? historicalData.commonReasons.join(', ') : 'none recorded'}
 
-Use this data to calibrate your confidence assessment. If many similar bookings needed adjustment, lower confidence. If few needed adjustment, this is a more predictable setup.`
+Use this data to calibrate your confidence assessment.`
   } else {
     historicalSection = `
-No historical data available for similar bookings yet. Without past data to compare against, be more conservative with confidence (lean toward lower confidence).`
+No historical data available for similar bookings yet. Be more conservative with confidence.`
   }
 
-  const prompt = `You are a professional home cleaning pricing expert with access to historical booking data. A customer is booking a cleaning service and has provided details about their home.
+  const categoryPrompts: Record<QuoteCategory, string> = {
+    auto_care: `You are a professional auto detailing pricing expert. A customer is booking a vehicle detailing service.
 
-Customer's home details:
-- Building: ${context.buildingType || 'not specified'}
-- Bedrooms: ${context.bedrooms || 'not specified'}
-- Bathrooms: ${context.bathrooms || 'not specified'}
-- Square footage: ${context.sqft || 'not specified'}
-- Carpet: ${context.carpetType || 'not specified'}
-- Service type: ${context.serviceType || 'standard cleaning'}
+Customer's vehicle details:
+- Vehicle type: ${details.vehicleType || 'not specified'}
+- Service: ${details.serviceType || 'not specified'}
+- Condition: ${details.condition || 'not specified'}
 
 Customer's notes: "${notes}"
 ${historicalSection}
 
-Analyze the notes and historical patterns to assess how accurate our price quote is likely to be. Consider:
-- Extra rooms or large spaces (walk-in closets, sunrooms, bonus rooms, finished basements)
+Analyze the notes for factors affecting pricing accuracy. Consider:
+- Vehicle condition beyond checkboxes (hidden stains, pet damage severity, paint condition)
+- Interior material types (leather vs fabric, specialty surfaces)
+- Aftermarket modifications (tinted windows, wraps, custom paint)
+- Unusual vehicle sizes or configurations
+- How well the description matches our pricing model`,
+
+    home_care: `You are a professional home cleaning pricing expert. A customer is booking a cleaning service.
+
+Customer's home details:
+- Building: ${details.buildingType || 'not specified'}
+- Bedrooms: ${details.bedrooms || 'not specified'}
+- Bathrooms: ${details.bathrooms || 'not specified'}
+- Square footage: ${details.sqft || 'not specified'}
+- Carpet: ${details.carpetType || 'not specified'}
+- Service type: ${details.serviceType || 'standard cleaning'}
+
+Customer's notes: "${notes}"
+${historicalSection}
+
+Analyze the notes for factors affecting pricing accuracy. Consider:
+- Extra rooms or large spaces (walk-in closets, sunrooms, finished basements)
 - Unusual features (high ceilings, lots of windows, heavy furniture)
 - Special cleaning needs mentioned
-- How well the description matches our pricing model
-- Historical accuracy for similar setups
+- How well the description matches our pricing model`,
+
+    office: `You are a professional commercial cleaning pricing expert. A customer is requesting a quote for commercial cleaning.
+
+Customer's business details:
+- Business type: ${details.businessType || 'not specified'}
+- Space size: ${details.spaceSize || 'not specified'} sqft
+- Restrooms: ${details.restrooms || 'not specified'}
+- Service level: ${details.serviceLevel || 'not specified'}
+- Frequency: ${details.frequency || 'not specified'}
+
+Customer's notes: "${notes}"
+${historicalSection}
+
+Analyze the notes for factors affecting pricing accuracy. Consider:
+- Specialized equipment needs (medical-grade, food service, industrial)
+- After-hours access requirements or security constraints
+- High-traffic areas requiring extra attention
+- Industry-specific sanitation requirements
+- Floor type variations (carpet, tile, concrete, specialty flooring)
+- Unusual layout or multi-level spaces`,
+  }
+
+  const prompt = `${categoryPrompts[category]}
 
 Respond with ONLY a JSON object (no markdown, no code fences):
 {
@@ -84,12 +127,12 @@ Respond with ONLY a JSON object (no markdown, no code fences):
   "suggestion": "Brief suggestion for the customer about quote accuracy"
 }
 
-Rules for confidenceAdjustment (this adjusts our base confidence score):
-- +5 to +10 if notes confirm simple/standard layout AND historical data shows high accuracy
+Rules for confidenceAdjustment:
+- +5 to +10 if notes confirm simple/standard setup AND historical data shows high accuracy
 - 0 if notes don't significantly affect pricing
 - -3 to -8 if notes suggest minor additional work or moderate complexity
 - -10 to -20 if notes suggest major additional work or complexity
-- -20 to -30 if notes describe highly unusual property that's hard to estimate
+- -20 to -30 if notes describe highly unusual situation that's hard to estimate
 
 Keep suggestion under 120 characters. Return 1-4 factors max.`
 
@@ -118,7 +161,6 @@ Keep suggestion under 120 characters. Return 1-4 factors max.`
       return { factors: [], confidenceAdjustment: 0, suggestion: '' }
     }
 
-    // Parse JSON — handle potential markdown code fences
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const parsed = JSON.parse(cleaned)
 
@@ -134,4 +176,23 @@ Keep suggestion under 120 characters. Return 1-4 factors max.`
     console.error('Gemini analysis error:', err)
     return { factors: [], confidenceAdjustment: 0, suggestion: '' }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Legacy wrapper — still used by /api/analyze-home
+// ---------------------------------------------------------------------------
+
+export async function analyzeHomeNotes(
+  notes: string,
+  context: {
+    bedrooms?: string
+    bathrooms?: string
+    sqft?: string
+    buildingType?: string
+    carpetType?: string
+    serviceType?: string
+  },
+  historicalData?: HistoricalData
+): Promise<HomeAnalysisResult> {
+  return analyzeQuoteNotes('home_care', notes, context, historicalData)
 }

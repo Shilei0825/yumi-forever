@@ -517,6 +517,124 @@ export function getHomePriceConfidence(input: {
   return { percent: confidence, missing, message }
 }
 
+// ---------------------------------------------------------------------------
+// Auto Price Confidence
+// ---------------------------------------------------------------------------
+
+export function getAutoPriceConfidence(input: {
+  hasVehicleType: boolean
+  hasServiceType: boolean
+  hasCondition: boolean
+  hasAddons: boolean
+  hasSpecialNotes?: boolean
+  aiAdjustment?: number
+}): PriceConfidence {
+  const missing: { field: string; impact: string }[] = []
+  let confidence = 100
+
+  if (!input.hasVehicleType) {
+    missing.push({ field: 'Vehicle type', impact: 'Price varies up to $120 by vehicle size' })
+    confidence -= 25
+  }
+  if (!input.hasServiceType) {
+    missing.push({ field: 'Service type', impact: 'Price varies from $140 to $900+' })
+    confidence -= 20
+  }
+  if (!input.hasCondition) {
+    missing.push({ field: 'Vehicle condition', impact: 'Price could increase up to 55%' })
+    confidence -= 20
+  }
+  if (!input.hasAddons) {
+    missing.push({ field: 'Add-ons', impact: 'Additional services may add $60-$180' })
+    confidence -= 5
+  }
+
+  if (input.aiAdjustment && input.aiAdjustment !== 0) {
+    confidence += input.aiAdjustment
+  }
+
+  confidence = Math.max(0, Math.min(95, confidence))
+
+  let message: string
+  if (confidence >= 85) {
+    message = 'High accuracy — this quote is very close to your final price.'
+  } else if (confidence >= 75) {
+    message = 'Good estimate — final price may vary slightly based on vehicle condition.'
+  } else if (confidence >= 65) {
+    message = 'Fair estimate — providing more details will improve accuracy.'
+  } else if (confidence >= 50) {
+    message = 'Rough estimate — fill in more details for a better quote.'
+  } else {
+    message = 'Very rough estimate — please fill in more details for an accurate quote.'
+  }
+
+  return { percent: confidence, missing, message }
+}
+
+// ---------------------------------------------------------------------------
+// Office Price Confidence
+// ---------------------------------------------------------------------------
+
+export function getOfficePriceConfidence(input: {
+  hasBusinessType: boolean
+  hasSpaceSize: boolean
+  hasRestrooms: boolean
+  hasServiceLevel: boolean
+  hasFrequency: boolean
+  hasContract: boolean
+  hasSpecialNotes?: boolean
+  aiAdjustment?: number
+}): PriceConfidence {
+  const missing: { field: string; impact: string }[] = []
+  let confidence = 100
+
+  if (!input.hasBusinessType) {
+    missing.push({ field: 'Business type', impact: 'Industry multipliers range from 0.7x to 1.55x' })
+    confidence -= 15
+  }
+  if (!input.hasSpaceSize) {
+    missing.push({ field: 'Space size', impact: 'Biggest price driver — varies widely' })
+    confidence -= 30
+  }
+  if (!input.hasRestrooms) {
+    missing.push({ field: 'Restroom count', impact: '$15 per restroom per visit' })
+    confidence -= 5
+  }
+  if (!input.hasServiceLevel) {
+    missing.push({ field: 'Service level', impact: 'Essential vs Premier varies significantly' })
+    confidence -= 15
+  }
+  if (!input.hasFrequency) {
+    missing.push({ field: 'Cleaning frequency', impact: 'Frequency discounts up to 35%' })
+    confidence -= 10
+  }
+  if (!input.hasContract) {
+    missing.push({ field: 'Contract length', impact: 'Contract discounts up to 15%' })
+    confidence -= 5
+  }
+
+  if (input.aiAdjustment && input.aiAdjustment !== 0) {
+    confidence += input.aiAdjustment
+  }
+
+  confidence = Math.max(0, Math.min(95, confidence))
+
+  let message: string
+  if (confidence >= 85) {
+    message = 'High accuracy — this quote is very close to your final price.'
+  } else if (confidence >= 75) {
+    message = 'Good estimate — final price may vary slightly based on space details.'
+  } else if (confidence >= 65) {
+    message = 'Fair estimate — providing more details will improve accuracy.'
+  } else if (confidence >= 50) {
+    message = 'Rough estimate — fill in more details for a better quote.'
+  } else {
+    message = 'Very rough estimate — please fill in more details for an accurate quote.'
+  }
+
+  return { percent: confidence, missing, message }
+}
+
 /** Returns the CSS color class for a given confidence percentage */
 export function getConfidenceColor(percent: number): string {
   if (percent >= 80) return 'bg-green-500'
