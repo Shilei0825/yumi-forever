@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { stripe } from '@/lib/stripe'
+import { getSquareClient, getSquareLocationId } from '@/lib/square'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -62,72 +62,85 @@ export async function POST(
       )
     }
 
-    // Get or create Stripe customer
-    let stripeCustomerId: string | undefined
+    const squareClient = getSquareClient()
+
+    // Get or create Square customer
+    let squareCustomerId: string | undefined
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('stripe_customer_id, email, full_name')
+      .select('square_customer_id, email, full_name')
       .eq('id', user.id)
       .single()
 
-    if (profile?.stripe_customer_id) {
-      stripeCustomerId = profile.stripe_customer_id
+    if (profile?.square_customer_id) {
+      squareCustomerId = profile.square_customer_id
     } else {
-      const customer = await stripe.customers.create({
-        email: profile?.email || booking.customer_email,
-        name: profile?.full_name || booking.customer_name,
-        metadata: {
-          supabase_user_id: user.id,
-        },
-      })
+      try {
+        const customer = await squareClient.customers.create({
+          emailAddress: profile?.email || booking.customer_email,
+          givenName: profile?.full_name || booking.customer_name,
+          referenceId: user.id,
+          idempotencyKey: crypto.randomUUID(),
+        })
 
-      stripeCustomerId = customer.id
+        squareCustomerId = customer.customer?.id
 
-      await supabase
-        .from('profiles')
-        .update({ stripe_customer_id: customer.id })
-        .eq('id', user.id)
+        if (squareCustomerId) {
+          await supabase
+            .from('profiles')
+            .update({ square_customer_id: squareCustomerId })
+            .eq('id', user.id)
+        }
+      } catch (err) {
+        console.error('Square customer creation error:', err)
+      }
     }
 
-    // Get origin for redirect URLs
+    // Get origin for redirect URL
     const origin =
       request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || ''
 
     const serviceName = booking.service?.name || 'Service'
 
-    // Create Stripe checkout session for the remaining balance
-    const sessionParams: Record<string, unknown> = {
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Yumi Forever - ${serviceName} (Remaining Balance)`,
+    // Create Square checkout payment link for the remaining balance
+    const paymentLink = await squareClient.checkout.paymentLinks.create({
+      idempotencyKey: crypto.randomUUID(),
+      order: {
+        locationId: getSquareLocationId(),
+        lineItems: [
+          {
+            name: `Yumi Forever - ${serviceName} (Remaining Balance)`,
+            quantity: '1',
+            basePriceMoney: {
+              amount: BigInt(remainingBalance),
+              currency: 'USD',
             },
-            unit_amount: remainingBalance,
           },
-          quantity: 1,
+        ],
+        metadata: {
+          booking_id: bookingId,
+          payment_type: 'balance',
         },
-      ],
-      mode: 'payment' as const,
-      success_url: `${origin}/portal/bookings/${bookingId}?success=true`,
-      cancel_url: `${origin}/portal/bookings/${bookingId}?canceled=true`,
-      metadata: {
-        booking_id: bookingId,
-        payment_type: 'balance',
+        referenceId: bookingId,
       },
-    }
+      checkoutOptions: {
+        redirectUrl: `${origin}/portal/bookings/${bookingId}?success=true`,
+      },
+      prePopulatedData: {
+        buyerEmail: booking.customer_email,
+      },
+    })
 
-    if (stripeCustomerId) {
-      sessionParams.customer = stripeCustomerId
-    } else {
-      sessionParams.customer_email = booking.customer_email
-    }
+    const checkoutUrl = paymentLink.paymentLink?.url
+    const orderId = paymentLink.paymentLink?.orderId
 
-    const session = await stripe.checkout.sessions.create(
-      sessionParams as Parameters<typeof stripe.checkout.sessions.create>[0]
-    )
+    if (!checkoutUrl) {
+      return NextResponse.json(
+        { error: 'Failed to create checkout link' },
+        { status: 500 }
+      )
+    }
 
     // Insert payment record with status 'unpaid' (webhook will update to 'paid')
     const { error: paymentError } = await supabase.from('payments').insert({
@@ -136,14 +149,14 @@ export async function POST(
       amount: remainingBalance,
       status: 'unpaid',
       payment_type: 'balance',
-      stripe_checkout_session_id: session.id,
+      square_order_id: orderId || null,
     })
 
     if (paymentError) {
       console.error('Payment record insert error:', paymentError)
     }
 
-    return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: checkoutUrl })
   } catch (error) {
     console.error('Pay balance error:', error)
     return NextResponse.json(

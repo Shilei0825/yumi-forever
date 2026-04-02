@@ -234,7 +234,7 @@ export default function HomePage() {
               {/* Desktop: CTA buttons */}
               <div className="mt-6 hidden gap-4 sm:flex">
                 <Button size="default" className="h-11 bg-white px-8 text-sm font-semibold text-primary hover:bg-neutral-100" asChild>
-                  <Link href="/book">
+                  <Link href="/services">
                     Book Now
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
@@ -495,7 +495,7 @@ export default function HomePage() {
                       variant={'popular' in plan && plan.popular ? "default" : "outline"}
                       asChild
                     >
-                      <Link href="/book">Get Started</Link>
+                      <Link href="/services">Get Started</Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -588,7 +588,7 @@ export default function HomePage() {
           </p>
           <div className="mt-10">
             <Button size="lg" asChild>
-              <Link href="/book">
+              <Link href="/services">
                 Book Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>

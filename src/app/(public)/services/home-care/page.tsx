@@ -27,6 +27,13 @@ export const metadata: Metadata = {
     'home cleaning NJ', 'house cleaning NYC', 'deep cleaning NJ',
     'move out cleaning NJ', 'move in cleaning NYC', 'carpet cleaning NJ',
     'maid service NJ', 'professional house cleaning near me', 'eco-friendly cleaning NJ',
+    'home cleaning Secaucus', 'Secaucus home cleaning', 'house cleaning Secaucus',
+    'home cleaning Hackensack', 'house cleaning Hackensack',
+    'home cleaning Jersey City', 'house cleaning Jersey City',
+    'home cleaning Hoboken', 'maid service Hoboken',
+    'home cleaning Fort Lee NJ', 'house cleaning Fort Lee',
+    'home cleaning Bergen County', 'house cleaning Hudson County',
+    'home cleaning near me NJ', 'deep cleaning near me NJ',
   ],
   openGraph: {
     title: 'Home Cleaning Services | Yumi Forever | NJ & NYC',

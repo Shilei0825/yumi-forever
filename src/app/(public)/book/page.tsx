@@ -25,6 +25,7 @@ import {
   ADDONS,
   TIME_SLOTS,
   TAX_RATE,
+  calculateTravelFee,
   type VehicleType,
 } from '@/lib/constants'
 import type { ServiceDefinition } from '@/lib/constants'
@@ -227,6 +228,11 @@ function BookingPageInner() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [step])
+
   // Navigation
   const goNext = useCallback(() => {
     setStep((s) => {
@@ -333,7 +339,12 @@ function BookingPageInner() {
     }, 0)
   }, [booking.addons, getAddonPrice, getAddonQuantity])
 
-  const subtotal = servicePrice + addonTotal
+  const travelFee = useMemo(() => {
+    if (!booking.zipCode || booking.zipCode.length < 5) return { zone: 'local' as const, label: '', fee: 0, breakdown: '' }
+    return calculateTravelFee(booking.zipCode.trim())
+  }, [booking.zipCode])
+
+  const subtotal = servicePrice + addonTotal + travelFee.fee
   const tax = Math.round(subtotal * TAX_RATE)
   const total = subtotal + tax
 
@@ -858,6 +869,12 @@ function BookingPageInner() {
                   })}
                 </div>
               )}
+              {travelFee.fee > 0 && (
+                <div className="mt-2 flex items-center justify-between text-sm text-amber-700">
+                  <span>{travelFee.label}</span>
+                  <span>+{formatCurrency(travelFee.fee)}</span>
+                </div>
+              )}
               <div className="mt-3 border-t border-gray-100 pt-3">
                 <div className="flex items-center justify-between text-sm text-gray-600">
                   <span>Subtotal</span>
@@ -1199,6 +1216,12 @@ function BookingPageInner() {
                       </div>
                     )
                   })}
+                  {travelFee.fee > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-amber-700">{travelFee.label}</span>
+                      <span className="text-amber-700">+{formatCurrency(travelFee.fee)}</span>
+                    </div>
+                  )}
                   <div className="my-2 border-t border-gray-100" />
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Subtotal</span>

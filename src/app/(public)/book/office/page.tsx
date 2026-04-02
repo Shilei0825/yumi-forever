@@ -35,6 +35,7 @@ import {
   CONTRACT_DISCOUNTS,
   TIME_SLOTS,
   calculateCommercialQuote,
+  calculateTravelFee,
   type BusinessType,
   type CleaningFrequency,
   type CommercialQuote,
@@ -270,6 +271,11 @@ function OfficeBookingPageInner() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [step])
 
   // Navigation
   const goNext = useCallback(() => {

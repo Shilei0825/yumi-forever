@@ -14,9 +14,9 @@ export default function AuthLayout({
           <Image
             src="/logo-vertical.png"
             alt={BRAND.name}
-            width={140}
-            height={140}
-            className="h-24 w-auto"
+            width={1024}
+            height={1536}
+            className="h-28 w-auto"
             priority
           />
         </Link>

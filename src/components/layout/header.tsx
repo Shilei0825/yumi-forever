@@ -121,7 +121,7 @@ export function Header() {
               </Link>
             )}
             <Link
-              href="/book"
+              href="/services"
               className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-violet-600"
             >
               Book Now
@@ -185,7 +185,7 @@ export function Header() {
               </a>
               <div className="flex flex-col gap-3">
                 <Link
-                  href="/book"
+                  href="/services"
                   className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-base font-semibold text-white transition-colors active:bg-violet-600"
                 >
                   Book Now

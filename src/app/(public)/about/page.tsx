@@ -19,9 +19,22 @@ import { BRAND } from "@/lib/constants"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: `About Us | ${BRAND.name}`,
+  title: 'About Yumi Forever | Auto Detailing & Home Cleaning in NJ & NYC',
   description:
-    "Learn about Yumi Forever, your trusted partner for premium home cleaning and auto detailing services in the NYC and NJ area.",
+    'Learn about Yumi Forever, your trusted partner for premium auto detailing, home cleaning, and commercial services in New Jersey and New York City. Certified professionals, eco-friendly products, satisfaction guaranteed.',
+  keywords: [
+    'yumi forever', 'about yumi forever', 'cleaning company NJ',
+    'auto detailing company NYC', 'professional cleaning NJ NYC',
+    'cleaning company Secaucus', 'detailing company Hackensack',
+    'cleaning company Jersey City', 'cleaning company Bergen County',
+    'cleaning company Hudson County',
+  ],
+  openGraph: {
+    title: 'About Yumi Forever | NJ & NYC Cleaning & Detailing',
+    description:
+      'Trusted auto detailing and home cleaning in NJ & NYC. Background-checked professionals, eco-friendly products, and 500+ services completed.',
+  },
+  alternates: { canonical: 'https://yumiforever.com/about' },
 }
 
 const VALUES = [
@@ -210,7 +223,7 @@ export default function AboutPage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href="/book">
+              <Link href="/services">
                 Book Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>

@@ -39,6 +39,11 @@ export const metadata: Metadata = {
     'office cleaning NJ', 'commercial cleaning NYC', 'janitorial service NJ',
     'office cleaning service near me', 'commercial cleaning New Jersey',
     'recurring office cleaning NYC', 'building cleaning NJ', 'business cleaning service',
+    'office cleaning Secaucus', 'commercial cleaning Secaucus',
+    'office cleaning Hackensack', 'office cleaning Jersey City',
+    'commercial cleaning Hoboken', 'office cleaning Fort Lee NJ',
+    'janitorial service Bergen County', 'office cleaning Hudson County',
+    'office cleaning near me NJ',
   ],
   openGraph: {
     title: 'Office & Commercial Cleaning | Yumi Forever | NJ & NYC',

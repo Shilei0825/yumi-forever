@@ -36,6 +36,10 @@ export const metadata: Metadata = {
     'cleaning services NJ', 'detailing services NYC', 'auto detailing NJ',
     'home cleaning NYC', 'office cleaning NJ', 'fleet washing NJ',
     'yumi forever services', 'professional cleaning near me',
+    'cleaning services Secaucus', 'detailing services Secaucus',
+    'cleaning services Hackensack', 'cleaning services Jersey City',
+    'detailing services Hoboken', 'cleaning services Fort Lee NJ',
+    'cleaning services Bergen County', 'cleaning services Hudson County',
   ],
   openGraph: {
     title: 'Cleaning & Detailing Services | Yumi Forever | NJ & NYC',
@@ -322,7 +326,7 @@ export default function ServicesPage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href="/book">Book a Service</Link>
+              <Link href="#categories">Book a Service</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/contact">Contact Us</Link>

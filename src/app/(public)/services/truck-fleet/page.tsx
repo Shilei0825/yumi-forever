@@ -29,6 +29,9 @@ export const metadata: Metadata = {
     'fleet washing NJ', 'truck wash NYC', 'commercial fleet cleaning NJ',
     'fleet detailing service', 'truck detailing NJ', 'van washing service NJ',
     'mobile fleet wash NYC', 'fleet cleaning contract NJ',
+    'fleet washing Secaucus', 'truck wash Hackensack', 'fleet washing Bergen County',
+    'truck detailing Jersey City', 'fleet washing Hudson County',
+    'commercial truck wash near me NJ',
   ],
   openGraph: {
     title: 'Truck & Fleet Washing Services | Yumi Forever | NJ & NYC',

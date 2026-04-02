@@ -104,7 +104,7 @@ function PayPageContent() {
     setError('')
 
     try {
-      const res = await fetch('/api/stripe/checkout-balance', {
+      const res = await fetch('/api/square/checkout-balance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -223,7 +223,7 @@ function PayPageContent() {
               </Button>
 
               <p className="text-center text-xs text-gray-400">
-                Secure payment powered by Stripe
+                Secure payment powered by Square
               </p>
             </CardContent>
           </Card>
@@ -396,7 +396,7 @@ function PayPageContent() {
           ))}
 
           <p className="text-center text-xs text-gray-400">
-            Secure payments powered by Stripe
+            Secure payments powered by Square
           </p>
         </div>
       )}

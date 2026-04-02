@@ -12,9 +12,12 @@ export const metadata: Metadata = {
   description:
     'Premium mobile auto detailing in New Jersey and NYC. Hand wash, interior detailing, paint correction, ceramic coating, and more. We come to your home or office. Book online with Yumi Forever.',
   keywords: [
-    'auto detailing NJ', 'mobile car wash NJ', 'car detailing NYC',
-    'ceramic coating NJ', 'paint correction NJ', 'interior detailing NJ',
+    'auto detailing NJ', 'NJ auto detailing', 'mobile car wash NJ', 'car wash NJ',
+    'car detailing NYC', 'ceramic coating NJ', 'paint correction NJ', 'interior detailing NJ',
     'hand car wash near me', 'mobile auto detailing NYC', 'express car wash NJ',
+    'mobile car wash Secaucus', 'mobile car wash Hackensack', 'car detailing Hoboken',
+    'auto detailing Jersey City', 'car wash Bergen County', 'mobile detailing Hudson County',
+    'car detailing Fort Lee NJ', 'headlight restoration NJ',
   ],
   openGraph: {
     title: 'Auto Detailing & Car Wash | Yumi Forever | NJ & NYC',

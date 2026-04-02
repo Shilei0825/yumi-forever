@@ -9,22 +9,28 @@ export const BRAND = {
 }
 
 export const SERVICE_AREAS = [
-  '90001', '90002', '90003', '90004', '90005',
-  '90006', '90007', '90008', '90009', '90010',
-  '90011', '90012', '90013', '90014', '90015',
-  '90016', '90017', '90018', '90019', '90020',
-  '90024', '90025', '90028', '90034', '90035',
-  '90036', '90038', '90039', '90041', '90042',
-  '90043', '90044', '90045', '90046', '90047',
-  '90048', '90049', '90056', '90057', '90058',
-  '90059', '90061', '90062', '90063', '90064',
-  '90065', '90066', '90067', '90068', '90069',
-  '90071', '90077', '90094', '90210', '90211',
-  '90212', '90230', '90232', '90245', '90247',
-  '90248', '90249', '90250', '90254', '90260',
-  '90266', '90270', '90274', '90275', '90277',
-  '90278', '90290', '90291', '90292', '90293',
-  '90301', '90302', '90303', '90304', '90305',
+  // Northern NJ (primary service area)
+  '07002', '07003', '07004', '07006', '07009', '07010', '07011', '07012',
+  '07013', '07014', '07017', '07018', '07020', '07021', '07022', '07024',
+  '07026', '07028', '07029', '07030', '07031', '07032', '07033', '07034',
+  '07036', '07039', '07040', '07041', '07042', '07043', '07044', '07045',
+  '07046', '07047', '07050', '07052', '07054', '07055', '07057', '07058',
+  '07060', '07062', '07063', '07064', '07065', '07066', '07067', '07068',
+  '07070', '07071', '07072', '07073', '07074', '07075', '07076', '07077',
+  '07078', '07079', '07080', '07081', '07083', '07086', '07087', '07088',
+  // Newark area
+  '07101', '07102', '07103', '07104', '07105', '07106', '07107', '07108',
+  '07109', '07110', '07111', '07112', '07114',
+  // Jersey City / Hudson County
+  '07302', '07304', '07305', '07306', '07307', '07310', '07311',
+  // Hoboken / Weehawken
+  '07030', '07086', '07087',
+  // Bergen County
+  '07601', '07603', '07604', '07605', '07606', '07607', '07608',
+  '07621', '07624', '07626', '07627', '07628', '07630', '07631',
+  '07632', '07640', '07641', '07642', '07643', '07644', '07645',
+  '07646', '07647', '07648', '07649', '07650', '07652', '07656',
+  '07657', '07660', '07661', '07662', '07663', '07666', '07670',
 ]
 
 export const AUTO_SERVICES = [
@@ -33,66 +39,66 @@ export const AUTO_SERVICES = [
     slug: 'express-exterior',
     serviceType: 'express_exterior' as const,
     description: 'Full hand wash, bug & tar removal, tire dressing, window cleaning, and spray wax finish.',
-    basePrice: 8500,
+    basePrice: 14900,
     duration: 45,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 2500,
+    depositAmount: 4500,
   },
   {
     name: 'Express Interior',
     slug: 'express-interior',
     serviceType: 'express_interior' as const,
     description: 'Full vacuum, dashboard & console wipe, door panels, interior glass, vent cleaning, and air freshener.',
-    basePrice: 9500,
+    basePrice: 16900,
     duration: 60,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 2500,
+    depositAmount: 5000,
   },
   {
     name: 'Express In & Out',
     slug: 'express-in-out',
     serviceType: 'express_in_out' as const,
     description: 'Complete express exterior wash plus full interior cleaning in one convenient visit.',
-    basePrice: 14000,
+    basePrice: 26900,
     duration: 90,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 4000,
+    depositAmount: 8000,
   },
   {
     name: 'Premium Exterior',
     slug: 'premium-exterior',
     serviceType: 'premium_exterior' as const,
     description: 'Express Exterior plus clay bar decontamination, one-step polish, synthetic sealant, and trim restoration.',
-    basePrice: 18000,
+    basePrice: 34900,
     duration: 150,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 5000,
+    depositAmount: 10000,
   },
   {
     name: 'Premium Interior',
     slug: 'premium-interior',
     serviceType: 'premium_interior' as const,
     description: 'Express Interior plus deep steam extraction, leather conditioning, stain treatment, and UV protectant.',
-    basePrice: 22500,
+    basePrice: 38900,
     duration: 150,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 6000,
+    depositAmount: 11500,
   },
   {
     name: 'Premium Detail',
     slug: 'premium-detail',
     serviceType: 'premium_detail' as const,
     description: 'Our finest service — complete premium exterior and interior detail with engine bay cleaning and paint correction consultation.',
-    basePrice: 32500,
+    basePrice: 57900,
     duration: 300,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 8000,
+    depositAmount: 17500,
     mostPopular: true,
   },
 ]
@@ -103,44 +109,44 @@ export const HOME_SERVICES = [
     slug: 'standard-cleaning',
     serviceType: 'standard' as const,
     description: 'Full home clean including kitchen, bathrooms, living areas, and bedrooms.',
-    basePrice: 15000,
-    duration: 90,
+    basePrice: 28900,
+    duration: 120,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 4000,
+    depositAmount: 8500,
   },
   {
     name: 'Deep Cleaning',
     slug: 'deep-cleaning',
     serviceType: 'deep' as const,
     description: 'Intensive deep clean with baseboards, inside cabinets, appliances, and more.',
-    basePrice: 25000,
-    duration: 180,
+    basePrice: 47900,
+    duration: 210,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 6000,
+    depositAmount: 14500,
   },
   {
     name: 'Move-In / Move-Out Cleaning',
     slug: 'move-in-move-out-cleaning',
     serviceType: 'move_in_out' as const,
     description: 'Top-to-bottom cleaning for moving transitions. Get your deposit back.',
-    basePrice: 30000,
-    duration: 240,
+    basePrice: 57900,
+    duration: 300,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 7500,
+    depositAmount: 17500,
   },
   {
     name: 'Carpet Cleaning',
     slug: 'carpet-cleaning',
     serviceType: 'carpet' as const,
     description: 'Professional hot water extraction with stain treatment and deodorizing.',
-    basePrice: 12000,
-    duration: 90,
+    basePrice: 23900,
+    duration: 120,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 3000,
+    depositAmount: 7000,
   },
 ]
 
@@ -152,18 +158,18 @@ export const HOME_ADDONS: {
   price: number
   unit: string
 }[] = [
-  { id: 'oven-cleaning', name: 'Oven Cleaning', description: 'Interior deep clean, degreasing, racks', price: 4000, unit: 'per oven' },
-  { id: 'fridge-cleaning', name: 'Refrigerator Cleaning', description: 'Interior shelves, drawers, and seals', price: 4000, unit: 'per fridge' },
-  { id: 'inside-cabinets', name: 'Inside Cabinets & Drawers', description: 'Wipe and organize kitchen/bath cabinets', price: 4500, unit: 'per kitchen or bath' },
-  { id: 'carpet-deodorizing', name: 'Carpet Deodorizing', description: 'Deep deodorizer treatment for carpet odors', price: 3500, unit: 'per room' },
-  { id: 'laundry-wash-fold', name: 'Laundry (Wash, Dry & Fold)', description: 'We wash, dry, and fold your laundry', price: 2500, unit: 'per load' },
-  { id: 'bed-linen-change', name: 'Bed Linen Change & Laundry', description: 'Strip, wash, dry, and remake beds', price: 2000, unit: 'per bed' },
-  { id: 'window-cleaning', name: 'Interior Window Cleaning', description: 'Glass, sills, and tracks', price: 1000, unit: 'per window' },
-  { id: 'pet-hair-deep', name: 'Pet Hair Deep Clean', description: 'Extra attention to pet hair on furniture and carpets', price: 4500, unit: 'flat rate' },
-  { id: 'dishwasher-cleaning', name: 'Dishwasher Cleaning', description: 'Interior deep clean and filter cleaning', price: 3000, unit: 'per unit' },
-  { id: 'garage-cleaning', name: 'Garage Sweep & Mop', description: 'Floor sweeping, mopping, and cobweb removal', price: 5000, unit: 'flat rate' },
-  { id: 'patio-balcony', name: 'Patio / Balcony Cleaning', description: 'Sweep, mop, and wipe railings', price: 4000, unit: 'flat rate' },
-  { id: 'wall-spot-clean', name: 'Wall Spot Cleaning', description: 'Remove scuffs, marks, and fingerprints', price: 3000, unit: 'flat rate' },
+  { id: 'oven-cleaning', name: 'Oven Cleaning', description: 'Interior deep clean, degreasing, racks', price: 5500, unit: 'per oven' },
+  { id: 'fridge-cleaning', name: 'Refrigerator Cleaning', description: 'Interior shelves, drawers, and seals', price: 5500, unit: 'per fridge' },
+  { id: 'inside-cabinets', name: 'Inside Cabinets & Drawers', description: 'Wipe and organize kitchen/bath cabinets', price: 6500, unit: 'per kitchen or bath' },
+  { id: 'carpet-deodorizing', name: 'Carpet Deodorizing', description: 'Deep deodorizer treatment for carpet odors', price: 4900, unit: 'per room' },
+  { id: 'laundry-wash-fold', name: 'Laundry (Wash, Dry & Fold)', description: 'We wash, dry, and fold your laundry', price: 3500, unit: 'per load' },
+  { id: 'bed-linen-change', name: 'Bed Linen Change & Laundry', description: 'Strip, wash, dry, and remake beds', price: 2900, unit: 'per bed' },
+  { id: 'window-cleaning', name: 'Interior Window Cleaning', description: 'Glass, sills, and tracks', price: 1500, unit: 'per window' },
+  { id: 'pet-hair-deep', name: 'Pet Hair Deep Clean', description: 'Extra attention to pet hair on furniture and carpets', price: 6500, unit: 'flat rate' },
+  { id: 'dishwasher-cleaning', name: 'Dishwasher Cleaning', description: 'Interior deep clean and filter cleaning', price: 4500, unit: 'per unit' },
+  { id: 'garage-cleaning', name: 'Garage Sweep & Mop', description: 'Floor sweeping, mopping, and cobweb removal', price: 7500, unit: 'flat rate' },
+  { id: 'patio-balcony', name: 'Patio / Balcony Cleaning', description: 'Sweep, mop, and wipe railings', price: 5500, unit: 'flat rate' },
+  { id: 'wall-spot-clean', name: 'Wall Spot Cleaning', description: 'Remove scuffs, marks, and fingerprints', price: 4500, unit: 'flat rate' },
 ]
 
 export const FLEET_SERVICES = [
@@ -567,7 +573,7 @@ export const MEMBERSHIP_PLANS = [
     slug: 'auto-care-monthly',
     category: 'individual' as const,
     description: '2 express washes + 1 interior detail per month',
-    price: 9900,
+    price: 19900,
     interval: 'month' as const,
     features: [
       '2 express exterior hand washes',
@@ -582,7 +588,7 @@ export const MEMBERSHIP_PLANS = [
     slug: 'home-care-monthly',
     category: 'individual' as const,
     description: 'Bi-weekly standard home cleaning',
-    price: 19900,
+    price: 34900,
     interval: 'month' as const,
     features: [
       '2 standard home cleanings per month',
@@ -597,7 +603,7 @@ export const MEMBERSHIP_PLANS = [
     slug: 'premium-bundle',
     category: 'individual' as const,
     description: 'Auto + home care at one unbeatable price',
-    price: 27900,
+    price: 47900,
     interval: 'month' as const,
     popular: true,
     features: [
@@ -619,6 +625,91 @@ export const TIME_SLOTS = [
 ]
 
 export const TAX_RATE = 0.0875 // 8.75%
+
+// ---------------------------------------------------------------------------
+// Travel / Distance Fees
+// ---------------------------------------------------------------------------
+
+export type TravelZone =
+  | 'local'           // Northern NJ primary service area — no fee
+  | 'nyc_manhattan'   // Manhattan — toll + congestion fee
+  | 'nyc_outer'       // Brooklyn, Queens, Bronx, Staten Island — toll fee
+  | 'extended'        // 30–50 miles from base — small travel fee
+  | 'long_distance'   // 50+ miles — mileage-based fee
+
+export interface TravelFeeResult {
+  zone: TravelZone
+  label: string
+  fee: number         // cents
+  breakdown: string
+}
+
+// Manhattan zip codes: 10001–10282
+const MANHATTAN_PREFIX = ['100', '101', '102']
+// Bronx: 104xx
+const BRONX_PREFIX = ['104']
+// Staten Island: 103xx
+const STATEN_ISLAND_PREFIX = ['103']
+// Brooklyn: 112xx
+const BROOKLYN_PREFIX = ['112']
+// Queens: 110xx, 111xx, 113xx, 114xx, 116xx
+const QUEENS_PREFIX = ['110', '111', '113', '114', '116']
+
+// Extended NJ zips (Central/South NJ, ~30-50 miles)
+const EXTENDED_NJ_PREFIX = ['078', '079', '088', '089']
+
+// Long distance indicators (PA, CT, upstate NY, far south NJ)
+const LONG_DISTANCE_PREFIX = ['105', '106', '107', '108', '109', '125', '126', '127', '128', '129', '190', '191', '060', '061', '068', '069', '085', '086', '087']
+
+export const TRAVEL_FEES: Record<Exclude<TravelZone, 'local'>, { fee: number; label: string; breakdown: string }> = {
+  nyc_manhattan: {
+    fee: 7500,    // $75 — covers GWB/Lincoln/Holland toll + congestion pricing
+    label: 'Manhattan Travel & Toll Fee',
+    breakdown: 'Bridge/tunnel toll + NYC congestion surcharge',
+  },
+  nyc_outer: {
+    fee: 4500,    // $45 — covers bridge/tunnel toll
+    label: 'NYC Borough Travel Fee',
+    breakdown: 'Bridge/tunnel toll + travel surcharge',
+  },
+  extended: {
+    fee: 3500,    // $35 — extended drive
+    label: 'Extended Area Travel Fee',
+    breakdown: 'Travel surcharge for locations 30–50 miles from service base',
+  },
+  long_distance: {
+    fee: 7500,    // $75 base + calculated per mile
+    label: 'Long Distance Travel Fee',
+    breakdown: 'Travel surcharge for locations 50+ miles from service base',
+  },
+}
+
+export function detectTravelZone(zipCode: string): TravelZone {
+  const prefix = zipCode.slice(0, 3)
+
+  if (MANHATTAN_PREFIX.includes(prefix)) return 'nyc_manhattan'
+  if (BRONX_PREFIX.includes(prefix) || STATEN_ISLAND_PREFIX.includes(prefix) || BROOKLYN_PREFIX.includes(prefix) || QUEENS_PREFIX.includes(prefix)) return 'nyc_outer'
+  if (LONG_DISTANCE_PREFIX.includes(prefix)) return 'long_distance'
+  if (EXTENDED_NJ_PREFIX.includes(prefix)) return 'extended'
+
+  return 'local'
+}
+
+export function calculateTravelFee(zipCode: string): TravelFeeResult {
+  const zone = detectTravelZone(zipCode)
+
+  if (zone === 'local') {
+    return { zone, label: 'Local Service Area', fee: 0, breakdown: 'No travel fee' }
+  }
+
+  const config = TRAVEL_FEES[zone]
+  return {
+    zone,
+    label: config.label,
+    fee: config.fee,
+    breakdown: config.breakdown,
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Auto Booking — Vehicle-Based Pricing
@@ -660,12 +751,12 @@ export interface AddonDefinition {
 }
 
 export const ADDONS: AddonDefinition[] = [
-  { id: 'engine-bay', name: 'Engine Bay Cleaning', description: 'Detailed engine compartment cleaning and degreasing', pricing: { sedan: 6000, compact_suv: 7500, large_suv: 9500 }, includedIn: ['premium-detail'] },
-  { id: 'odor-removal', name: 'Odor Removal', description: 'Professional ozone treatment and deodorizing', pricing: { sedan: 7500, compact_suv: 9500, large_suv: 12500 } },
-  { id: 'clay-bar', name: 'Clay Bar Treatment', description: 'Paint decontamination for a smooth finish', pricing: { sedan: 5000, compact_suv: 6500, large_suv: 8500 }, includedIn: ['premium-exterior', 'premium-detail'] },
-  { id: 'hand-wax', name: 'Hand Wax & Seal', description: 'Premium hand wax with protective sealant', pricing: { sedan: 6000, compact_suv: 8000, large_suv: 10000 } },
-  { id: 'headlight-restoration', name: 'Headlight Restoration', description: 'UV-damaged lens sanding, polishing, and clear coat seal', pricing: { sedan: 8000, compact_suv: 8000, large_suv: 8000 } },
-  { id: 'paint-correction', name: 'Paint Correction', description: 'Scratch & swirl removal per panel (hood, door, fender, etc.)', pricing: { sedan: 7500, compact_suv: 7500, large_suv: 7500 }, quantifiable: true, quantityLabel: 'panels' },
+  { id: 'engine-bay', name: 'Engine Bay Cleaning', description: 'Detailed engine compartment cleaning and degreasing', pricing: { sedan: 8900, compact_suv: 10900, large_suv: 13900 }, includedIn: ['premium-detail'] },
+  { id: 'odor-removal', name: 'Odor Removal', description: 'Professional ozone treatment and deodorizing', pricing: { sedan: 10900, compact_suv: 13900, large_suv: 17900 } },
+  { id: 'clay-bar', name: 'Clay Bar Treatment', description: 'Paint decontamination for a smooth finish', pricing: { sedan: 7900, compact_suv: 9900, large_suv: 12900 }, includedIn: ['premium-exterior', 'premium-detail'] },
+  { id: 'hand-wax', name: 'Hand Wax & Seal', description: 'Premium hand wax with protective sealant', pricing: { sedan: 8900, compact_suv: 11900, large_suv: 14900 } },
+  { id: 'headlight-restoration', name: 'Headlight Restoration', description: 'UV-damaged lens sanding, polishing, and clear coat seal', pricing: { sedan: 11900, compact_suv: 11900, large_suv: 11900 } },
+  { id: 'paint-correction', name: 'Paint Correction', description: 'Scratch & swirl removal per panel (hood, door, fender, etc.)', pricing: { sedan: 10900, compact_suv: 10900, large_suv: 10900 }, quantifiable: true, quantityLabel: 'panels' },
   { id: 'ceramic-coating', name: 'Ceramic Coating', description: 'Professional-grade ceramic paint protection', pricing: { sedan: 0, compact_suv: 0, large_suv: 0 }, quoteOnly: true },
   { id: 'window-tint', name: 'Window Tint', description: 'Professional window tinting service', pricing: { sedan: 0, compact_suv: 0, large_suv: 0 }, quoteOnly: true },
   { id: 'ppf', name: 'PPF (Paint Protection Film)', description: 'Clear film protection for high-impact areas', pricing: { sedan: 0, compact_suv: 0, large_suv: 0 }, quoteOnly: true },
@@ -679,8 +770,8 @@ export const SERVICES: ServiceDefinition[] = [
     duration: 45,
     tier: 'express',
     includes: ['Hand wash', 'Bug & tar removal', 'Tire dressing', 'Window cleaning', 'Spray wax finish'],
-    pricing: { sedan: 8500, compact_suv: 11000, large_suv: 13500 },
-    depositAmount: 2500,
+    pricing: { sedan: 14900, compact_suv: 18900, large_suv: 22900 },
+    depositAmount: 4500,
   },
   {
     slug: 'express-interior',
@@ -689,8 +780,8 @@ export const SERVICES: ServiceDefinition[] = [
     duration: 60,
     tier: 'express',
     includes: ['Full vacuum', 'Dashboard & console wipe', 'Door panel cleaning', 'Interior glass', 'Vent cleaning', 'Air freshener'],
-    pricing: { sedan: 9500, compact_suv: 12000, large_suv: 15000 },
-    depositAmount: 2500,
+    pricing: { sedan: 16900, compact_suv: 20900, large_suv: 25900 },
+    depositAmount: 5000,
   },
   {
     slug: 'express-in-out',
@@ -699,8 +790,8 @@ export const SERVICES: ServiceDefinition[] = [
     duration: 90,
     tier: 'express',
     includes: ['Everything in Express Exterior', 'Everything in Express Interior'],
-    pricing: { sedan: 14000, compact_suv: 18000, large_suv: 22000 },
-    depositAmount: 4000,
+    pricing: { sedan: 26900, compact_suv: 33900, large_suv: 41900 },
+    depositAmount: 8000,
   },
   {
     slug: 'premium-exterior',
@@ -709,8 +800,8 @@ export const SERVICES: ServiceDefinition[] = [
     duration: 150,
     tier: 'premium',
     includes: ['Everything in Express Exterior', 'Clay bar decontamination', 'One-step polish', 'Synthetic sealant', 'Trim restoration', 'Exhaust tip polish'],
-    pricing: { sedan: 18000, compact_suv: 23000, large_suv: 29000 },
-    depositAmount: 5000,
+    pricing: { sedan: 34900, compact_suv: 43900, large_suv: 53900 },
+    depositAmount: 10000,
   },
   {
     slug: 'premium-interior',
@@ -719,8 +810,8 @@ export const SERVICES: ServiceDefinition[] = [
     duration: 150,
     tier: 'premium',
     includes: ['Everything in Express Interior', 'Steam / hot water extraction', 'Leather cleaning & conditioning', 'Stain treatment', 'UV protectant on plastics'],
-    pricing: { sedan: 22500, compact_suv: 29000, large_suv: 35000 },
-    depositAmount: 6000,
+    pricing: { sedan: 38900, compact_suv: 48900, large_suv: 59900 },
+    depositAmount: 11500,
   },
   {
     slug: 'premium-detail',
@@ -730,7 +821,7 @@ export const SERVICES: ServiceDefinition[] = [
     tier: 'premium',
     popular: true,
     includes: ['Everything in Premium Exterior', 'Everything in Premium Interior', 'Engine bay cleaning', 'Paint correction consultation', 'Final LED inspection'],
-    pricing: { sedan: 32500, compact_suv: 40000, large_suv: 49000 },
-    depositAmount: 8000,
+    pricing: { sedan: 57900, compact_suv: 72900, large_suv: 89900 },
+    depositAmount: 17500,
   },
 ]

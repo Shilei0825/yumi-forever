@@ -52,32 +52,32 @@ export interface PriceBreakdown {
 // ---------------------------------------------------------------------------
 
 export const VEHICLE_BASE_PRICE: Record<VehicleClass, number> = {
-  sedan: 8000,       // $80
-  small_suv: 10000,  // $100
-  large_suv: 12000,  // $120
-  truck_van: 14000,  // $140
+  sedan: 14000,      // $140
+  small_suv: 18000,  // $180
+  large_suv: 22000,  // $220
+  truck_van: 26000,  // $260
 }
 
 export const AUTO_SERVICE_ADDON: Record<AutoServiceType, number> = {
   exterior: 0,              // $0
-  interior: 4000,           // $40
-  full: 8000,               // $80
-  premium: 12000,           // $120
-  paint_enhancement: 10000, // $100
+  interior: 6000,           // $60
+  full: 14000,              // $140
+  premium: 24000,           // $240
+  paint_enhancement: 18000, // $180
 }
 
 export const AUTO_CONDITION_MULTIPLIER: Record<AutoCondition, number> = {
   light: 1.0,
   daily: 1.15,
-  extra_care: 1.3,
-  heavy: 1.5,
+  extra_care: 1.35,
+  heavy: 1.55,
 }
 
 export const AUTO_CONDITION_ADDON_PRICE: Record<AutoConditionAddon, number> = {
-  pet_hair: 5000,    // $50
-  stains: 4000,      // $40
-  smoke: 8000,       // $80
-  sand_mud: 4000,    // $40
+  pet_hair: 7500,    // $75
+  stains: 6000,      // $60
+  smoke: 12000,      // $120
+  sand_mud: 6000,    // $60
 }
 
 // ---------------------------------------------------------------------------
@@ -85,11 +85,11 @@ export const AUTO_CONDITION_ADDON_PRICE: Record<AutoConditionAddon, number> = {
 // ---------------------------------------------------------------------------
 
 export const HOME_FLOORPLAN_BASE: Record<HomeFloorplan, number> = {
-  studio: 10000,        // $100
-  '1bed_1bath': 12000,  // $120
-  '2bed_1bath': 15000,  // $150
-  '2bed_2bath': 18000,  // $180
-  '3bed_plus': 22000,   // $220
+  studio: 18000,        // $180
+  '1bed_1bath': 22000,  // $220
+  '2bed_1bath': 27000,  // $270
+  '2bed_2bath': 32000,  // $320
+  '3bed_plus': 39000,   // $390
 }
 
 export const HOME_SERVICE_MULTIPLIER: Record<HomeServiceType, number> = {
@@ -108,11 +108,11 @@ export const HOME_DIRTINESS_MULTIPLIER: Record<HomeDirtiness, number> = {
 
 // Sqft-based pricing (alternative to floorplan)
 export const HOME_SQFT_BASE: { maxSqft: number; price: number; label: string }[] = [
-  { maxSqft: 800,   price: 10000, label: 'Under 800 sqft' },
-  { maxSqft: 1200,  price: 14000, label: '800–1,200 sqft' },
-  { maxSqft: 1800,  price: 18000, label: '1,200–1,800 sqft' },
-  { maxSqft: 2500,  price: 23000, label: '1,800–2,500 sqft' },
-  { maxSqft: Infinity, price: 30000, label: '2,500+ sqft' },
+  { maxSqft: 800,   price: 18000, label: 'Under 800 sqft' },
+  { maxSqft: 1200,  price: 24000, label: '800–1,200 sqft' },
+  { maxSqft: 1800,  price: 30000, label: '1,200–1,800 sqft' },
+  { maxSqft: 2500,  price: 38000, label: '1,800–2,500 sqft' },
+  { maxSqft: Infinity, price: 48000, label: '2,500+ sqft' },
 ]
 
 export function getSqftBasePrice(sqft: number): number {
@@ -277,12 +277,12 @@ export function calculateHomePrice(input: HomePriceInput): PriceBreakdown {
   const bathrooms = input.bathrooms || 0
   let roomAddon = 0
   if (bedrooms > 0) {
-    // $15 per bedroom
-    roomAddon += bedrooms * 1500
+    // $25 per bedroom
+    roomAddon += bedrooms * 2500
   }
   if (bathrooms > 0) {
-    // $20 per bathroom (bathrooms are more labor-intensive)
-    roomAddon += bathrooms * 2000
+    // $35 per bathroom (bathrooms are more labor-intensive)
+    roomAddon += bathrooms * 3500
   }
 
   const serviceMultiplier = HOME_SERVICE_MULTIPLIER[input.serviceType]
@@ -296,10 +296,10 @@ export function calculateHomePrice(input: HomePriceInput): PriceBreakdown {
   ]
 
   if (bedrooms > 0) {
-    lineItems.push({ label: `${bedrooms} bedroom${bedrooms > 1 ? 's' : ''} (+$${(bedrooms * 15)})`, amount: bedrooms * 1500 })
+    lineItems.push({ label: `${bedrooms} bedroom${bedrooms > 1 ? 's' : ''} (+$${(bedrooms * 25)})`, amount: bedrooms * 2500 })
   }
   if (bathrooms > 0) {
-    lineItems.push({ label: `${bathrooms} bathroom${bathrooms > 1 ? 's' : ''} (+$${(bathrooms * 20)})`, amount: bathrooms * 2000 })
+    lineItems.push({ label: `${bathrooms} bathroom${bathrooms > 1 ? 's' : ''} (+$${(bathrooms * 35)})`, amount: bathrooms * 3500 })
   }
 
   if (serviceMultiplier !== 1) {

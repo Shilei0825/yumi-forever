@@ -744,7 +744,7 @@ export default function PricingPage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href="/book">
+              <Link href="/services">
                 Book a Service
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

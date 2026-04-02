@@ -162,7 +162,7 @@ export default function BookingDetailPage() {
 
     try {
       const balanceAmount = booking.total - (booking.deposit_amount || 0)
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetch('/api/square/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

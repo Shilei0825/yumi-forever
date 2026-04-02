@@ -98,7 +98,7 @@ function PaySuccessPageContent() {
               )}
 
               <p className="mt-6 text-sm text-gray-400">
-                A receipt has been sent to your email by Stripe.
+                A receipt has been sent to your email.
               </p>
 
               <div className="mt-6">

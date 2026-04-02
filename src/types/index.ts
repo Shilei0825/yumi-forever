@@ -172,8 +172,8 @@ export interface Payment {
   amount: number
   status: PaymentStatus
   payment_type: 'deposit' | 'balance' | 'full' | 'tip' | 'refund'
-  stripe_payment_intent_id: string | null
-  stripe_checkout_session_id: string | null
+  square_payment_id: string | null
+  square_order_id: string | null
   created_at: string
 }
 
@@ -238,7 +238,7 @@ export interface Subscription {
   id: string
   profile_id: string
   plan_name: string
-  stripe_subscription_id: string | null
+  square_subscription_id: string | null
   status: 'active' | 'canceled' | 'past_due' | 'paused'
   current_period_start: string
   current_period_end: string

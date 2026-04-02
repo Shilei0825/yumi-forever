@@ -297,7 +297,7 @@ export default function ContactPage() {
           </p>
           <div className="mt-10">
             <Button size="lg" asChild>
-              <a href="/book">
+              <a href="/services">
                 Book a Service
                 <ArrowRight className="ml-2 h-5 w-5" />
               </a>
