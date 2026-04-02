@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,8 +28,10 @@ const signupSchema = z.object({
 
 type SignupFormData = z.infer<typeof signupSchema>
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const bookingId = searchParams.get('booking_id')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -37,6 +39,7 @@ export default function SignupPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -47,6 +50,19 @@ export default function SignupPage() {
       password: '',
     },
   })
+
+  // Pre-fill from booking if booking_id is in URL
+  useEffect(() => {
+    if (!bookingId) return
+    fetch(`/api/bookings/${bookingId}/public`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.customer_name) setValue('full_name', data.customer_name)
+        if (data.customer_email) setValue('email', data.customer_email)
+        if (data.customer_phone) setValue('phone', data.customer_phone)
+      })
+      .catch(() => {})
+  }, [bookingId, setValue])
 
   async function onSubmit(formData: SignupFormData) {
     setError(null)
@@ -192,5 +208,22 @@ export default function SignupPage() {
         </CardFooter>
       </form>
     </Card>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Create Account</CardTitle>
+            <CardDescription>Loading...</CardDescription>
+          </CardHeader>
+        </Card>
+      }
+    >
+      <SignupForm />
+    </Suspense>
   )
 }

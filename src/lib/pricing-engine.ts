@@ -463,6 +463,8 @@ export function getHomePriceConfidence(input: {
   hasBuildingType: boolean
   hasDirtiness: boolean
   hasLastCleaned: boolean
+  hasSpecialNotes?: boolean
+  aiAdjustment?: number
 }): PriceConfidence {
   const missing: { field: string; impact: string }[] = []
   let confidence = 100
@@ -492,18 +494,49 @@ export function getHomePriceConfidence(input: {
     confidence -= 15
   }
 
-  confidence = Math.max(0, confidence)
+  // AI adjustment from Gemini analysis of special notes
+  if (input.aiAdjustment && input.aiAdjustment !== 0) {
+    confidence += input.aiAdjustment
+  }
+
+  confidence = Math.max(0, Math.min(100, confidence))
 
   let message: string
   if (confidence >= 90) {
     message = 'High accuracy — this quote is very close to your final price.'
-  } else if (confidence >= 70) {
+  } else if (confidence >= 80) {
     message = 'Good estimate — final price may vary slightly based on missing details.'
+  } else if (confidence >= 65) {
+    message = 'Fair estimate — providing more details will improve accuracy.'
   } else if (confidence >= 50) {
-    message = 'Rough estimate — providing more details will give you a more accurate quote.'
+    message = 'Rough estimate — fill in more details for a better quote.'
   } else {
     message = 'Very rough estimate — please fill in more details for an accurate quote.'
   }
 
   return { percent: confidence, missing, message }
+}
+
+/** Returns the CSS color class for a given confidence percentage */
+export function getConfidenceColor(percent: number): string {
+  if (percent >= 80) return 'bg-green-500'
+  if (percent >= 65) return 'bg-yellow-500'
+  if (percent >= 50) return 'bg-orange-500'
+  return 'bg-red-500'
+}
+
+/** Returns the text color class for a given confidence percentage */
+export function getConfidenceTextColor(percent: number): string {
+  if (percent >= 80) return 'text-green-700'
+  if (percent >= 65) return 'text-yellow-700'
+  if (percent >= 50) return 'text-orange-700'
+  return 'text-red-700'
+}
+
+/** Returns the border/bg color class for confidence container */
+export function getConfidenceBorderColor(percent: number): string {
+  if (percent >= 80) return 'border-green-200 bg-green-50'
+  if (percent >= 65) return 'border-yellow-200 bg-yellow-50'
+  if (percent >= 50) return 'border-orange-200 bg-orange-50'
+  return 'border-red-200 bg-red-50'
 }

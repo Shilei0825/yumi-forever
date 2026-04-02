@@ -46,6 +46,9 @@ function UserLoginForm() {
         return
       }
 
+      // Link any guest bookings to this account (fire-and-forget)
+      fetch('/api/bookings/link', { method: 'POST' }).catch(() => {})
+
       if (redirectTo) {
         router.push(redirectTo)
         return

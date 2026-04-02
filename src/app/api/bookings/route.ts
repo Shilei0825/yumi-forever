@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { generateBookingNumber, normalizePhone } from '@/lib/utils'
+import { getSquareClient, getSquareLocationId } from '@/lib/square'
 
 export async function POST(request: Request) {
   try {
@@ -244,12 +245,80 @@ export async function POST(request: Request) {
       console.error('Status history insert error:', historyError)
     }
 
+    // Create Square checkout link if deposit is required
+    let checkoutUrl: string | null = null
+
+    if (deposit_amount > 0) {
+      try {
+        const squareClient = getSquareClient()
+        const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
+
+        // Get service name for line item
+        let serviceName = 'Service'
+        if (service_id) {
+          const { data: svc } = await supabaseAdmin
+            .from('services')
+            .select('name')
+            .eq('id', service_id)
+            .single()
+          if (svc) serviceName = svc.name
+        }
+
+        const paymentLink = await squareClient.checkout.paymentLinks.create({
+          idempotencyKey: crypto.randomUUID(),
+          order: {
+            locationId: getSquareLocationId(),
+            lineItems: [
+              {
+                name: `Yumi Forever - ${serviceName}`,
+                quantity: '1',
+                basePriceMoney: {
+                  amount: BigInt(deposit_amount),
+                  currency: 'USD',
+                },
+              },
+            ],
+            metadata: {
+              booking_id: booking.id,
+              payment_type: 'deposit',
+            },
+            referenceId: booking.id,
+          },
+          checkoutOptions: {
+            redirectUrl: `${origin}/booking-confirmation?booking_id=${booking.id}`,
+          },
+          prePopulatedData: {
+            buyerEmail: customer_email,
+          },
+        })
+
+        checkoutUrl = paymentLink.paymentLink?.url || null
+        const orderId = paymentLink.paymentLink?.orderId
+
+        // Insert payment record
+        if (checkoutUrl) {
+          await supabaseAdmin.from('payments').insert({
+            booking_id: booking.id,
+            profile_id: user?.id || null,
+            amount: deposit_amount,
+            status: 'unpaid',
+            payment_type: 'deposit',
+            square_order_id: orderId || null,
+          })
+        }
+      } catch (squareErr) {
+        console.error('Square checkout creation error:', squareErr)
+        // Don't fail the booking — user can pay later via /pay
+      }
+    }
+
     return NextResponse.json(
       {
         booking_id: booking.id,
         booking_number: booking.booking_number,
         total,
         deposit_amount,
+        checkoutUrl,
       },
       { status: 201 }
     )

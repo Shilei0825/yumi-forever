@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, useCallback, useEffect, useMemo } from 'react'
+import { Suspense, useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
@@ -9,6 +9,8 @@ import {
   Clock,
   Loader2,
   CreditCard,
+  ChevronDown,
+  Info,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -25,6 +27,9 @@ import {
   calculateHomePrice,
   estimateHomeDuration,
   getHomePriceConfidence,
+  getConfidenceColor,
+  getConfidenceTextColor,
+  getConfidenceBorderColor,
   type HomeFloorplan,
   type HomeDirtiness,
   type HomeLastCleaned,
@@ -62,8 +67,37 @@ interface HomeBookingState {
   customerPhone: string
   addons: string[]
   specialInstructions: string
+  layoutNotes: string
   consentChecked: boolean
 }
+
+// Dropdown options
+const BEDROOM_OPTIONS = [
+  { value: 'studio', label: 'Studio' },
+  { value: '1', label: '1' },
+  { value: '2', label: '2' },
+  { value: '3', label: '3' },
+  { value: '4', label: '4' },
+  { value: '5+', label: '5+' },
+]
+
+const BATHROOM_OPTIONS = [
+  { value: '1', label: '1' },
+  { value: '1.5', label: '1.5' },
+  { value: '2', label: '2' },
+  { value: '2.5', label: '2.5' },
+  { value: '3', label: '3' },
+  { value: '3.5', label: '3.5' },
+  { value: '4+', label: '4+' },
+]
+
+const SQFT_OPTIONS = [
+  { value: '600', label: 'Under 800 sqft', floorplan: 'studio' as HomeFloorplan },
+  { value: '1000', label: '800 – 1,200 sqft', floorplan: '1bed_1bath' as HomeFloorplan },
+  { value: '1500', label: '1,200 – 1,800 sqft', floorplan: '2bed_1bath' as HomeFloorplan },
+  { value: '2100', label: '1,800 – 2,500 sqft', floorplan: '2bed_2bath' as HomeFloorplan },
+  { value: '3000', label: '2,500+ sqft', floorplan: '3bed_plus' as HomeFloorplan },
+]
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -104,6 +138,7 @@ const INITIAL_STATE: HomeBookingState = {
   customerPhone: '',
   addons: [],
   specialInstructions: '',
+  layoutNotes: '',
   consentChecked: false,
 }
 
@@ -368,6 +403,57 @@ function HomeBookingPageInner() {
     booking.lastCleaned,
   ])
 
+  // ----- AI analysis state -----
+  const [aiAdjustment, setAiAdjustment] = useState(0)
+  const [aiSuggestion, setAiSuggestion] = useState('')
+  const [aiFactors, setAiFactors] = useState<string[]>([])
+  const [aiLoading, setAiLoading] = useState(false)
+  const [showTips, setShowTips] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Debounced Gemini analysis when layout notes change
+  useEffect(() => {
+    if (!booking.layoutNotes || booking.layoutNotes.trim().length < 10) {
+      setAiAdjustment(0)
+      setAiSuggestion('')
+      setAiFactors([])
+      return
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(async () => {
+      setAiLoading(true)
+      try {
+        const res = await fetch('/api/analyze-home', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            notes: booking.layoutNotes,
+            bedrooms: booking.bedrooms,
+            bathrooms: booking.bathrooms,
+            sqft: booking.sqft,
+            buildingType: booking.buildingType,
+            carpetType: booking.carpetType,
+            serviceType: booking.serviceType,
+          }),
+        })
+        const data = await res.json()
+        setAiAdjustment(data.confidenceAdjustment || 0)
+        setAiSuggestion(data.suggestion || '')
+        setAiFactors(data.factors || [])
+      } catch {
+        // Silently fail — AI analysis is optional
+      } finally {
+        setAiLoading(false)
+      }
+    }, 800)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [booking.layoutNotes, booking.bedrooms, booking.bathrooms, booking.sqft, booking.buildingType, booking.carpetType, booking.serviceType])
+
   // ----- Price confidence -----
   const priceConfidence = useMemo(() => {
     return getHomePriceConfidence({
@@ -378,8 +464,10 @@ function HomeBookingPageInner() {
       hasBuildingType: !!booking.buildingType,
       hasDirtiness: !!booking.dirtiness,
       hasLastCleaned: !!booking.lastCleaned,
+      hasSpecialNotes: !!booking.layoutNotes.trim(),
+      aiAdjustment,
     })
-  }, [booking.floorplan, booking.sqft, booking.bedrooms, booking.bathrooms, booking.carpetType, booking.buildingType, booking.dirtiness, booking.lastCleaned])
+  }, [booking.floorplan, booking.sqft, booking.bedrooms, booking.bathrooms, booking.carpetType, booking.buildingType, booking.dirtiness, booking.lastCleaned, booking.layoutNotes, aiAdjustment])
 
   // ----- Add-on pricing -----
   const addonTotal = useMemo(() => {
@@ -422,11 +510,11 @@ function HomeBookingPageInner() {
 
   function validateHomeDetails(): boolean {
     const errs: Record<string, string> = {}
-    if (!booking.floorplan && !booking.sqft) {
-      errs.floorplan = 'Please select a floorplan or enter square footage'
+    if (!booking.buildingType) {
+      errs.buildingType = 'Please select a building type'
     }
-    if (booking.sqft && (isNaN(parseInt(booking.sqft, 10)) || parseInt(booking.sqft, 10) <= 0)) {
-      errs.sqft = 'Please enter a valid square footage'
+    if (!booking.floorplan && !booking.sqft) {
+      errs.sqft = 'Please select an approximate square footage'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -499,7 +587,7 @@ function HomeBookingPageInner() {
         home_service_type: booking.serviceType,
         home_dirtiness: booking.dirtiness,
         last_cleaned: booking.lastCleaned,
-        special_instructions: booking.specialInstructions.trim() || null,
+        special_instructions: [booking.specialInstructions.trim(), booking.layoutNotes.trim()].filter(Boolean).join('\n\n') || null,
         home_sqft: booking.sqft ? parseInt(booking.sqft, 10) : null,
         home_bedrooms: booking.bedrooms ? parseInt(booking.bedrooms, 10) : null,
         home_bathrooms: booking.bathrooms ? parseInt(booking.bathrooms, 10) : null,
@@ -528,9 +616,7 @@ function HomeBookingPageInner() {
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
       } else {
-        router.push(
-          `/portal/bookings/${data.booking_id || data.booking_number || ''}?success=true`
-        )
+        router.push(`/booking-confirmation?booking_id=${data.booking_id}`)
       }
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -620,7 +706,7 @@ function HomeBookingPageInner() {
         )}
 
         {/* ================================================================= */}
-        {/* STEP 2 -- Home Details */}
+        {/* STEP 2 -- Home Details (redesigned) */}
         {/* ================================================================= */}
         {step === 2 && (
           <div>
@@ -636,94 +722,14 @@ function HomeBookingPageInner() {
               Tell us about your space so we can provide an accurate quote.
             </p>
 
-            {/* Floorplan selector */}
+            {/* 1. Building Type (required) */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Floorplan</label>
-              {errors.floorplan && (
-                <p className="mb-2 text-sm text-red-600">{errors.floorplan}</p>
-              )}
-              <div className="space-y-2">
-                {(Object.keys(HOME_FLOORPLAN_LABEL) as HomeFloorplan[]).map((key) => {
-                  const isSelected = booking.floorplan === key
-                  return (
-                    <div
-                      key={key}
-                      className={cn(
-                        'cursor-pointer rounded-lg border bg-white p-4 transition-colors',
-                        isSelected
-                          ? 'border-primary ring-2 ring-primary/20'
-                          : 'border-gray-200 hover:border-gray-300'
-                      )}
-                      onClick={() => {
-                        updateBooking('floorplan', key)
-                        // Clear sqft if floorplan is selected
-                        updateBooking('sqft', '')
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">
-                          {HOME_FLOORPLAN_LABEL[key]}
-                        </span>
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-300">
-                          {isSelected && <div className="h-3 w-3 rounded-full bg-primary" />}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* OR divider */}
-            <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-gray-200" />
-              <span className="text-xs font-medium uppercase text-gray-400">or</span>
-              <div className="h-px flex-1 bg-gray-200" />
-            </div>
-
-            {/* Sqft input */}
-            <div>
-              <Input
-                label="Square Footage"
-                type="number"
-                placeholder="e.g. 1200"
-                value={booking.sqft}
-                onChange={(e) => {
-                  updateBooking('sqft', e.target.value)
-                  // Clear floorplan if sqft is entered
-                  if (e.target.value) {
-                    updateBooking('floorplan', '')
-                  }
-                }}
-                error={errors.sqft}
-              />
-            </div>
-
-            {/* Bedrooms & Bathrooms */}
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <Input
-                label="Bedrooms"
-                type="number"
-                min="0"
-                placeholder="e.g. 2"
-                value={booking.bedrooms}
-                onChange={(e) => updateBooking('bedrooms', e.target.value)}
-              />
-              <Input
-                label="Bathrooms"
-                type="number"
-                min="0"
-                placeholder="e.g. 1"
-                value={booking.bathrooms}
-                onChange={(e) => updateBooking('bathrooms', e.target.value)}
-              />
-            </div>
-
-            {/* Building Type */}
-            <div className="mt-8">
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Building Type <span className="text-gray-400">(optional)</span>
+                Building Type
               </label>
+              {errors.buildingType && (
+                <p className="mb-2 text-sm text-red-600">{errors.buildingType}</p>
+              )}
               <div className="grid gap-2 sm:grid-cols-3">
                 {(Object.keys(HOME_BUILDING_LABEL) as HomeBuildingType[]).map((key) => {
                   const isSelected = booking.buildingType === key
@@ -731,7 +737,7 @@ function HomeBookingPageInner() {
                     <div
                       key={key}
                       className={cn(
-                        'cursor-pointer rounded-lg border bg-white p-3 text-center transition-colors',
+                        'cursor-pointer rounded-lg border bg-white p-4 text-center transition-colors',
                         isSelected
                           ? 'border-primary ring-2 ring-primary/20'
                           : 'border-gray-200 hover:border-gray-300'
@@ -747,69 +753,184 @@ function HomeBookingPageInner() {
               </div>
             </div>
 
-            {/* Carpet / Flooring Type */}
+            {/* 2. Bedrooms & Bathrooms (dropdowns) */}
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Bedrooms</label>
+                <div className="relative">
+                  <select
+                    value={booking.bedrooms}
+                    onChange={(e) => {
+                      updateBooking('bedrooms', e.target.value)
+                      // Auto-set floorplan based on bedrooms
+                      const val = e.target.value
+                      if (val === 'studio') updateBooking('floorplan', 'studio')
+                      else if (val === '1') updateBooking('floorplan', '1bed_1bath')
+                      else if (val === '2') updateBooking('floorplan', '2bed_1bath')
+                      else if (val === '3' || val === '4' || val === '5+') updateBooking('floorplan', '3bed_plus')
+                    }}
+                    className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">Select bedrooms</option>
+                    {BEDROOM_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Bathrooms</label>
+                <div className="relative">
+                  <select
+                    value={booking.bathrooms}
+                    onChange={(e) => {
+                      updateBooking('bathrooms', e.target.value)
+                      // Update floorplan if 2+ bathrooms
+                      if (parseFloat(e.target.value) >= 2 && booking.bedrooms === '2') {
+                        updateBooking('floorplan', '2bed_2bath')
+                      }
+                    }}
+                    className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">Select bathrooms</option>
+                    {BATHROOM_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Square Footage (dropdown) */}
             <div className="mt-6">
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                Flooring <span className="text-gray-400">(optional)</span>
-              </label>
-              <div className="space-y-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700">Square Footage</label>
+              {errors.sqft && (
+                <p className="mb-2 text-sm text-red-600">{errors.sqft}</p>
+              )}
+              <div className="relative">
+                <select
+                  value={booking.sqft}
+                  onChange={(e) => {
+                    updateBooking('sqft', e.target.value)
+                    // Set matching floorplan for pricing
+                    const match = SQFT_OPTIONS.find((o) => o.value === e.target.value)
+                    if (match) {
+                      updateBooking('floorplan', match.floorplan)
+                    }
+                  }}
+                  className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">Select approximate size</option>
+                  {SQFT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+
+            {/* 4. Flooring / Carpet */}
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-gray-700">Flooring</label>
+              <div className="grid gap-2 sm:grid-cols-3">
                 {(Object.keys(HOME_CARPET_LABEL) as HomeCarpetType[]).map((key) => {
                   const isSelected = booking.carpetType === key
                   return (
                     <div
                       key={key}
                       className={cn(
-                        'cursor-pointer rounded-lg border bg-white p-3 transition-colors',
+                        'cursor-pointer rounded-lg border bg-white p-3 text-center transition-colors',
                         isSelected
                           ? 'border-primary ring-2 ring-primary/20'
                           : 'border-gray-200 hover:border-gray-300'
                       )}
                       onClick={() => updateBooking('carpetType', key)}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-900">
-                          {HOME_CARPET_LABEL[key]}
-                        </span>
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gray-300">
-                          {isSelected && <div className="h-3 w-3 rounded-full bg-primary" />}
-                        </div>
-                      </div>
+                      <span className="text-sm font-medium text-gray-900">
+                        {HOME_CARPET_LABEL[key]}
+                      </span>
                     </div>
                   )
                 })}
               </div>
             </div>
 
-            {/* Price Confidence Indicator */}
-            {priceConfidence.missing.length > 0 && (
-              <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="h-2 flex-1 rounded-full bg-gray-200">
-                    <div
-                      className={cn(
-                        'h-2 rounded-full transition-all',
-                        priceConfidence.percent >= 80 ? 'bg-green-500' :
-                        priceConfidence.percent >= 60 ? 'bg-yellow-500' : 'bg-orange-500'
-                      )}
-                      style={{ width: `${priceConfidence.percent}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium text-gray-600 shrink-0">
-                    {priceConfidence.percent}% accurate
-                  </span>
+            {/* 5. Special Layout Notes */}
+            <div className="mt-6">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Special Layout Details <span className="text-gray-400">(optional)</span>
+              </label>
+              <p className="mb-2 text-xs text-gray-500">
+                Describe any unique areas to help us give you the most accurate quote.
+              </p>
+              <textarea
+                rows={4}
+                placeholder="E.g., large walk-in closet, oversized master bathroom, sunroom, finished basement, garage, lots of windows..."
+                value={booking.layoutNotes}
+                onChange={(e) => updateBooking('layoutNotes', e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              {aiLoading && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Analyzing your layout...
+                </p>
+              )}
+              {aiSuggestion && !aiLoading && (
+                <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+                  <p className="text-xs text-blue-800">{aiSuggestion}</p>
+                  {aiFactors.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {aiFactors.map((f, i) => (
+                        <span key={i} className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-blue-800 mb-2">{priceConfidence.message}</p>
-                {priceConfidence.missing.length > 0 && (
-                  <ul className="space-y-1">
-                    {priceConfidence.missing.map((m) => (
-                      <li key={m.field} className="text-xs text-blue-700">
-                        <span className="font-medium">{m.field}:</span> {m.impact}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              )}
+            </div>
+
+            {/* Quote Accuracy Indicator */}
+            <div className={cn('mt-6 rounded-lg border p-4', getConfidenceBorderColor(priceConfidence.percent))}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2.5 flex-1 rounded-full bg-gray-200">
+                  <div
+                    className={cn('h-2.5 rounded-full transition-all duration-500', getConfidenceColor(priceConfidence.percent))}
+                    style={{ width: `${priceConfidence.percent}%` }}
+                  />
+                </div>
+                <span className={cn('text-xs font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
+                  {priceConfidence.percent}%
+                </span>
               </div>
-            )}
+              <p className={cn('text-xs font-medium', getConfidenceTextColor(priceConfidence.percent))}>
+                Quote Accuracy: {priceConfidence.message}
+              </p>
+
+              {/* Tips toggle */}
+              <button
+                type="button"
+                onClick={() => setShowTips(!showTips)}
+                className="mt-2 flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700"
+              >
+                <Info className="h-3 w-3" />
+                {showTips ? 'Hide tips' : 'How to get the most accurate quote'}
+              </button>
+              {showTips && (
+                <ul className="mt-2 space-y-1 text-xs text-gray-600">
+                  {!booking.buildingType && <li>- Select your building type</li>}
+                  {!booking.bedrooms && <li>- Choose number of bedrooms</li>}
+                  {!booking.bathrooms && <li>- Choose number of bathrooms</li>}
+                  {!booking.sqft && <li>- Select your approximate square footage</li>}
+                  {!booking.carpetType && <li>- Select your flooring type</li>}
+                  {!booking.dirtiness && <li>- Tell us about the current condition (next step)</li>}
+                  {!booking.layoutNotes.trim() && <li>- Describe any special areas or unique layout features</li>}
+                </ul>
+              )}
+            </div>
 
             <div className="mt-8 flex items-center justify-between">
               <Button variant="outline" onClick={goBack}>
@@ -839,9 +960,19 @@ function HomeBookingPageInner() {
             </button>
 
             <h2 className="mb-1 text-lg font-semibold text-gray-900">Condition</h2>
-            <p className="mb-6 text-sm text-gray-500">
+            <p className="mb-4 text-sm text-gray-500">
               Help us understand the current state of your home.
             </p>
+
+            {/* Persistent confidence bar */}
+            <div className={cn('mb-6 flex items-center gap-2 rounded-lg border px-3 py-2', getConfidenceBorderColor(priceConfidence.percent))}>
+              <div className="h-1.5 flex-1 rounded-full bg-gray-200">
+                <div className={cn('h-1.5 rounded-full transition-all', getConfidenceColor(priceConfidence.percent))} style={{ width: `${priceConfidence.percent}%` }} />
+              </div>
+              <span className={cn('text-[10px] font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
+                Quote accuracy: {priceConfidence.percent}%
+              </span>
+            </div>
 
             {/* Dirtiness level */}
             <div>
@@ -941,9 +1072,19 @@ function HomeBookingPageInner() {
             </button>
 
             <h2 className="mb-1 text-lg font-semibold text-gray-900">Add-ons</h2>
-            <p className="mb-6 text-sm text-gray-500">
+            <p className="mb-4 text-sm text-gray-500">
               Enhance your cleaning with optional extras.
             </p>
+
+            {/* Persistent confidence bar */}
+            <div className={cn('mb-6 flex items-center gap-2 rounded-lg border px-3 py-2', getConfidenceBorderColor(priceConfidence.percent))}>
+              <div className="h-1.5 flex-1 rounded-full bg-gray-200">
+                <div className={cn('h-1.5 rounded-full transition-all', getConfidenceColor(priceConfidence.percent))} style={{ width: `${priceConfidence.percent}%` }} />
+              </div>
+              <span className={cn('text-[10px] font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
+                Quote accuracy: {priceConfidence.percent}%
+              </span>
+            </div>
 
             <div className="space-y-3">
               {HOME_ADDONS.map((addon) => {
@@ -1381,6 +1522,27 @@ function HomeBookingPageInner() {
                 <p className="text-sm text-gray-500">{booking.customerPhone}</p>
               </div>
 
+              {/* Layout Notes */}
+              {booking.layoutNotes.trim() && (
+                <div className="rounded-lg border border-gray-200 bg-white p-5">
+                  <h3 className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-500">
+                    Layout Details
+                  </h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {booking.layoutNotes}
+                  </p>
+                  {aiFactors.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {aiFactors.map((f, i) => (
+                        <span key={i} className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Special Instructions */}
               {booking.specialInstructions.trim() && (
                 <div className="rounded-lg border border-gray-200 bg-white p-5">
@@ -1475,33 +1637,25 @@ function HomeBookingPageInner() {
               </div>
 
               {/* Price Confidence */}
-              {priceConfidence.missing.length > 0 && (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="h-2 flex-1 rounded-full bg-gray-200">
-                      <div
-                        className={cn(
-                          'h-2 rounded-full',
-                          priceConfidence.percent >= 80 ? 'bg-green-500' :
-                          priceConfidence.percent >= 60 ? 'bg-yellow-500' : 'bg-orange-500'
-                        )}
-                        style={{ width: `${priceConfidence.percent}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-medium text-gray-600 shrink-0">
-                      {priceConfidence.percent}% accurate
-                    </span>
+              <div className={cn('rounded-lg border p-4', getConfidenceBorderColor(priceConfidence.percent))}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-2.5 flex-1 rounded-full bg-gray-200">
+                    <div
+                      className={cn('h-2.5 rounded-full transition-all', getConfidenceColor(priceConfidence.percent))}
+                      style={{ width: `${priceConfidence.percent}%` }}
+                    />
                   </div>
-                  <p className="text-xs text-blue-800">{priceConfidence.message}</p>
-                  <ul className="mt-1 space-y-0.5">
-                    {priceConfidence.missing.map((m) => (
-                      <li key={m.field} className="text-xs text-blue-700">
-                        <span className="font-medium">{m.field}:</span> {m.impact}
-                      </li>
-                    ))}
-                  </ul>
+                  <span className={cn('text-xs font-bold shrink-0', getConfidenceTextColor(priceConfidence.percent))}>
+                    {priceConfidence.percent}%
+                  </span>
                 </div>
-              )}
+                <p className={cn('text-xs font-medium', getConfidenceTextColor(priceConfidence.percent))}>
+                  Quote Accuracy: {priceConfidence.message}
+                </p>
+                {aiSuggestion && (
+                  <p className="mt-1 text-xs text-gray-600">{aiSuggestion}</p>
+                )}
+              </div>
 
               {/* Price Appeal */}
               {selectedService && (

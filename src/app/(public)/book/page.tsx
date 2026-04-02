@@ -453,7 +453,7 @@ function BookingPageInner() {
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
       } else {
-        router.push(`/portal/bookings/${data.booking_id || data.booking_number || ''}?success=true`)
+        router.push(`/booking-confirmation?booking_id=${data.booking_id}`)
       }
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
