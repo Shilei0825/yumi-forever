@@ -91,13 +91,25 @@ const BATHROOM_OPTIONS = [
   { value: '4+', label: '4+' },
 ]
 
-const SQFT_OPTIONS = [
-  { value: '600', label: 'Under 800 sqft', floorplan: 'studio' as HomeFloorplan },
-  { value: '1000', label: '800 – 1,200 sqft', floorplan: '1bed_1bath' as HomeFloorplan },
-  { value: '1500', label: '1,200 – 1,800 sqft', floorplan: '2bed_1bath' as HomeFloorplan },
-  { value: '2100', label: '1,800 – 2,500 sqft', floorplan: '2bed_2bath' as HomeFloorplan },
-  { value: '3000', label: '2,500+ sqft', floorplan: '3bed_plus' as HomeFloorplan },
-]
+/** Map free-text sqft to nearest floorplan for pricing */
+function sqftToFloorplan(sqft: number): HomeFloorplan {
+  if (sqft < 800) return 'studio'
+  if (sqft < 1200) return '1bed_1bath'
+  if (sqft < 1800) return '2bed_1bath'
+  if (sqft < 2500) return '2bed_2bath'
+  return '3bed_plus'
+}
+
+/** Infer floorplan from bedrooms/bathrooms when sqft not provided */
+function inferFloorplan(bedrooms: string, bathrooms: string): HomeFloorplan {
+  const beds = parseInt(bedrooms, 10) || 0
+  const baths = parseFloat(bathrooms) || 0
+  if (beds === 0) return 'studio'
+  if (beds === 1) return '1bed_1bath'
+  if (beds === 2 && baths < 2) return '2bed_1bath'
+  if (beds === 2) return '2bed_2bath'
+  return '3bed_plus'
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -762,12 +774,10 @@ function HomeBookingPageInner() {
                     value={booking.bedrooms}
                     onChange={(e) => {
                       updateBooking('bedrooms', e.target.value)
-                      // Auto-set floorplan based on bedrooms
-                      const val = e.target.value
-                      if (val === 'studio') updateBooking('floorplan', 'studio')
-                      else if (val === '1') updateBooking('floorplan', '1bed_1bath')
-                      else if (val === '2') updateBooking('floorplan', '2bed_1bath')
-                      else if (val === '3' || val === '4' || val === '5+') updateBooking('floorplan', '3bed_plus')
+                      // Auto-set floorplan only when sqft not provided
+                      if (!booking.sqft) {
+                        updateBooking('floorplan', inferFloorplan(e.target.value, booking.bathrooms))
+                      }
                     }}
                     className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
@@ -786,9 +796,9 @@ function HomeBookingPageInner() {
                     value={booking.bathrooms}
                     onChange={(e) => {
                       updateBooking('bathrooms', e.target.value)
-                      // Update floorplan if 2+ bathrooms
-                      if (parseFloat(e.target.value) >= 2 && booking.bedrooms === '2') {
-                        updateBooking('floorplan', '2bed_2bath')
+                      // Auto-set floorplan only when sqft not provided
+                      if (!booking.sqft) {
+                        updateBooking('floorplan', inferFloorplan(booking.bedrooms, e.target.value))
                       }
                     }}
                     className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -803,32 +813,32 @@ function HomeBookingPageInner() {
               </div>
             </div>
 
-            {/* 3. Square Footage (dropdown) */}
+            {/* 3. Square Footage (free text input) */}
             <div className="mt-6">
-              <label className="mb-2 block text-sm font-medium text-gray-700">Square Footage</label>
-              {errors.sqft && (
-                <p className="mb-2 text-sm text-red-600">{errors.sqft}</p>
-              )}
-              <div className="relative">
-                <select
-                  value={booking.sqft}
-                  onChange={(e) => {
-                    updateBooking('sqft', e.target.value)
-                    // Set matching floorplan for pricing
-                    const match = SQFT_OPTIONS.find((o) => o.value === e.target.value)
-                    if (match) {
-                      updateBooking('floorplan', match.floorplan)
-                    }
-                  }}
-                  className="w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Select approximate size</option>
-                  {SQFT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              </div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Square Footage <span className="text-gray-400">(optional)</span>
+              </label>
+              <p className="mb-2 text-xs text-gray-500">
+                Entering your square footage improves quote accuracy.
+              </p>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="e.g. 1200"
+                value={booking.sqft}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9]/g, '')
+                  updateBooking('sqft', val)
+                  if (val) {
+                    updateBooking('floorplan', sqftToFloorplan(parseInt(val, 10)))
+                  } else if (booking.bedrooms || booking.bathrooms) {
+                    updateBooking('floorplan', inferFloorplan(booking.bedrooms, booking.bathrooms))
+                  } else {
+                    updateBooking('floorplan', '')
+                  }
+                }}
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
             </div>
 
             {/* 4. Flooring / Carpet */}

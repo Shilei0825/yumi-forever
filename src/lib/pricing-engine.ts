@@ -450,7 +450,7 @@ export function estimateHomeDuration(serviceType: HomeServiceType, floorplan: Ho
 // ---------------------------------------------------------------------------
 
 export interface PriceConfidence {
-  percent: number // 0–100
+  percent: number // 0–95 (capped — predictions are never 100% accurate)
   missing: { field: string; impact: string }[]
   message: string
 }
@@ -499,12 +499,12 @@ export function getHomePriceConfidence(input: {
     confidence += input.aiAdjustment
   }
 
-  confidence = Math.max(0, Math.min(100, confidence))
+  confidence = Math.max(0, Math.min(95, confidence))
 
   let message: string
-  if (confidence >= 90) {
+  if (confidence >= 85) {
     message = 'High accuracy — this quote is very close to your final price.'
-  } else if (confidence >= 80) {
+  } else if (confidence >= 75) {
     message = 'Good estimate — final price may vary slightly based on missing details.'
   } else if (confidence >= 65) {
     message = 'Fair estimate — providing more details will improve accuracy.'

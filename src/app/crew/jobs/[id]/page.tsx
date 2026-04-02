@@ -10,7 +10,6 @@ import {
   MapPin,
   Navigation,
   Camera,
-  Upload,
   Clock,
   ChevronRight,
   Loader2,
@@ -18,7 +17,7 @@ import {
   Mail,
   FileText,
   ListChecks,
-  Image,
+  DollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -28,12 +27,14 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import {
   cn,
+  formatCurrency,
   formatDate,
   formatTime,
   formatDateTime,
   getStatusColor,
   getStatusLabel,
 } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 import type {
   Booking,
   BookingStatusHistory,
@@ -86,6 +87,11 @@ export default function CrewJobDetailPage({
   const [showCompletePrompt, setShowCompletePrompt] = useState(false)
   const [completionNotes, setCompletionNotes] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [showPriceAdjust, setShowPriceAdjust] = useState(false)
+  const [adjustPrice, setAdjustPrice] = useState('')
+  const [adjustReason, setAdjustReason] = useState('')
+  const [adjustLoading, setAdjustLoading] = useState(false)
+  const [adjustError, setAdjustError] = useState('')
 
   const fetchBookingDetails = useCallback(async () => {
     try {
@@ -280,6 +286,41 @@ export default function CrewJobDetailPage({
       updated[index] = !updated[index]
       return updated
     })
+  }
+
+  async function handlePriceAdjustment() {
+    if (!booking) return
+    const price = parseFloat(adjustPrice)
+    if (isNaN(price) || price <= 0) {
+      setAdjustError('Please enter a valid price')
+      return
+    }
+    if (adjustReason.trim().length < 3) {
+      setAdjustError('Please provide a reason for the adjustment')
+      return
+    }
+    setAdjustLoading(true)
+    setAdjustError('')
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/adjust-price`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ finalPrice: price, reason: adjustReason.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAdjustError(data.error || 'Failed to adjust price')
+      } else {
+        setShowPriceAdjust(false)
+        setSuccessMessage('Price adjusted successfully!')
+        await fetchBookingDetails()
+        setTimeout(() => setSuccessMessage(''), 5000)
+      }
+    } catch {
+      setAdjustError('An error occurred')
+    } finally {
+      setAdjustLoading(false)
+    }
   }
 
   function getDirectionsUrl(address: string) {
@@ -546,6 +587,107 @@ export default function CrewJobDetailPage({
               <p className="mt-1 text-sm text-amber-900">
                 {booking.service_notes}
               </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pricing */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <DollarSign className="h-4 w-4" />
+            Pricing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Quoted Price</span>
+            <span className={cn('font-medium', booking.final_price ? 'text-gray-400 line-through' : 'text-gray-900')}>
+              {formatCurrency(booking.total)}
+            </span>
+          </div>
+
+          {booking.final_price !== null && booking.final_price !== undefined && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Adjusted Price</span>
+                <span className="text-lg font-bold text-primary">
+                  {formatCurrency(booking.final_price)}
+                </span>
+              </div>
+              {booking.adjustment_reason && (
+                <div className="rounded-md bg-amber-50 px-3 py-2">
+                  <p className="text-xs font-medium uppercase text-amber-700">Adjustment Reason</p>
+                  <p className="mt-0.5 text-sm text-amber-900">{booking.adjustment_reason}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {!showPriceAdjust ? (
+            <Button
+              variant="outline"
+              className="h-12 w-full text-base"
+              onClick={() => {
+                setAdjustPrice(((booking.final_price ?? booking.total) / 100).toFixed(2))
+                setAdjustReason('')
+                setAdjustError('')
+                setShowPriceAdjust(true)
+              }}
+            >
+              <DollarSign className="mr-2 h-5 w-5" />
+              Adjust Price
+            </Button>
+          ) : (
+            <div className="space-y-3 rounded-lg border border-gray-200 p-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  New Price ($)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={adjustPrice}
+                  onChange={(e) => setAdjustPrice(e.target.value)}
+                  className="text-base"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Reason <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  placeholder="e.g., Extra large walk-in closet not in estimate"
+                  value={adjustReason}
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  rows={3}
+                  className="min-h-[80px] text-base"
+                />
+              </div>
+              {adjustError && (
+                <p className="text-sm text-red-600">{adjustError}</p>
+              )}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="h-12 flex-1 text-base"
+                  onClick={() => setShowPriceAdjust(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="h-12 flex-1 text-base"
+                  onClick={handlePriceAdjustment}
+                  disabled={adjustLoading}
+                >
+                  {adjustLoading ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : null}
+                  Save
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

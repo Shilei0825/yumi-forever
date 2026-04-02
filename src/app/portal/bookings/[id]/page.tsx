@@ -229,7 +229,9 @@ export default function BookingDetailPage() {
   const paymentStatus = getPaymentStatus(booking.payments)
   const depositPaid = getDepositPaid(booking.payments)
   const totalPaid = getTotalPaid(booking.payments)
-  const remainingBalance = booking.total - totalPaid
+  const effectiveTotal = booking.final_price ?? booking.total
+  const isPriceAdjusted = booking.final_price !== null && booking.final_price !== undefined && booking.final_price !== booking.total
+  const remainingBalance = effectiveTotal - totalPaid
   const isCanceled = booking.status === 'canceled'
   const isCompleted = booking.status === 'completed'
   const canCancel = !['completed', 'canceled'].includes(booking.status)
@@ -511,11 +513,28 @@ export default function BookingDetailPage() {
               )}
               <Separator />
               <div className="flex items-center justify-between font-medium">
-                <span className="text-gray-900">Total</span>
-                <span className="text-gray-900">
+                <span className="text-gray-900">{isPriceAdjusted ? 'Original Quote' : 'Total'}</span>
+                <span className={cn('text-gray-900', isPriceAdjusted && 'text-gray-400 line-through text-sm')}>
                   {formatCurrency(booking.total)}
                 </span>
               </div>
+              {isPriceAdjusted && (
+                <>
+                  <div className="flex items-center justify-between font-medium">
+                    <span className="text-primary">Adjusted Price</span>
+                    <span className="text-lg font-bold text-primary">
+                      {formatCurrency(booking.final_price!)}
+                    </span>
+                  </div>
+                  {booking.adjustment_reason && (
+                    <div className="rounded-md bg-amber-50 px-3 py-2">
+                      <p className="text-xs text-amber-700">
+                        <span className="font-medium">Reason:</span> {booking.adjustment_reason}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
 
               <Separator />
 

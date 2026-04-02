@@ -135,7 +135,8 @@ export default function BookingsPage() {
     setPayingBalanceId(booking.id)
 
     try {
-      const balanceAmount = booking.total - (booking.deposit_amount || 0)
+      const effectiveTotal = booking.final_price ?? booking.total
+      const balanceAmount = effectiveTotal - (booking.deposit_amount || 0)
       const res = await fetch('/api/square/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -193,9 +194,18 @@ export default function BookingsPage() {
                   <Badge className={getPaymentBadgeColor(paymentStatus)}>
                     {getStatusLabel(paymentStatus)}
                   </Badge>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(booking.total)}
-                  </span>
+                  {booking.final_price !== null && booking.final_price !== undefined && booking.final_price !== booking.total ? (
+                    <span className="flex items-center gap-1">
+                      <Badge className="bg-amber-100 text-amber-800 text-xs">Adjusted</Badge>
+                      <span className="text-sm font-semibold text-primary">
+                        {formatCurrency(booking.final_price)}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-900">
+                      {formatCurrency(booking.total)}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
