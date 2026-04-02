@@ -39,10 +39,12 @@ export function formatDateTime(date: string): string {
 }
 
 export function generateBookingNumber(): string {
-  const prefix = 'YC'
-  const timestamp = Date.now().toString(36).toUpperCase()
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase()
-  return `${prefix}-${timestamp}-${random}`
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no 0/O/1/I to avoid confusion
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return `YC-${code}`
 }
 
 export function getStatusColor(status: string): string {

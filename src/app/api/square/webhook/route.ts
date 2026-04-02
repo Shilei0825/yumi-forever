@@ -166,10 +166,30 @@ export async function POST(request: Request) {
             console.error('Status history insert error:', historyError)
           }
         } else {
-          // Deposit paid
+          // Deposit paid — update payment status AND deposit_paid/remaining_balance
+          const paidAmount = payment.totalMoney?.amount
+            ? Number(payment.totalMoney.amount)
+            : payment.amountMoney?.amount
+              ? Number(payment.amountMoney.amount)
+              : 0
+
+          // Get current booking to calculate remaining balance
+          const { data: currentBooking } = await supabase
+            .from('bookings')
+            .select('total, deposit_paid, remaining_balance')
+            .eq('id', bookingId)
+            .single()
+
+          const updatedDepositPaid = (currentBooking?.deposit_paid || 0) + paidAmount
+          const updatedRemainingBalance = (currentBooking?.total || 0) - updatedDepositPaid
+
           const { error: bookingUpdateError } = await supabase
             .from('bookings')
-            .update({ payment_status: 'deposit_paid' })
+            .update({
+              payment_status: 'deposit_paid',
+              deposit_paid: updatedDepositPaid,
+              remaining_balance: Math.max(0, updatedRemainingBalance),
+            })
             .eq('id', bookingId)
 
           if (bookingUpdateError) {

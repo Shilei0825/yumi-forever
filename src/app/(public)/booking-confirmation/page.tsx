@@ -21,7 +21,9 @@ interface BookingData {
   scheduled_time: string
   total: number
   deposit_amount: number
+  deposit_paid: number
   remaining_balance: number
+  payment_status: string
 }
 
 function BookingConfirmationContent() {
@@ -148,18 +150,27 @@ function BookingConfirmationContent() {
                   {formatCurrency(booking.total)}
                 </span>
               </div>
-              <div className="mt-2 flex justify-between text-sm">
-                <span className="text-gray-500">Deposit Paid</span>
-                <span className="font-medium text-green-600">
-                  {formatCurrency(booking.deposit_amount)}
-                </span>
-              </div>
+              {booking.deposit_amount > 0 && (
+                <div className="mt-2 flex justify-between text-sm">
+                  <span className="text-gray-500">
+                    {booking.deposit_paid > 0 ? 'Deposit Paid' : 'Deposit Due'}
+                  </span>
+                  <span className={`font-medium ${booking.deposit_paid > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {formatCurrency(booking.deposit_amount)}
+                  </span>
+                </div>
+              )}
               <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 text-sm">
                 <span className="text-gray-500">Remaining Balance</span>
                 <span className="font-semibold text-gray-900">
                   {formatCurrency(booking.remaining_balance)}
                 </span>
               </div>
+              {booking.payment_status === 'unpaid' && booking.deposit_amount > 0 && (
+                <p className="mt-3 text-center text-xs text-amber-600">
+                  Complete your deposit payment to confirm this booking.
+                </p>
+              )}
             </div>
           </CardContent>
 
