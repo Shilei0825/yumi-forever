@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, CreditCard, Loader2, CheckCircle, AlertCircle, Lock, Gift, Minus, Plus } from 'lucide-react'
+import { X, CreditCard, Loader2, CheckCircle, AlertCircle, Lock, Gift, Minus, Plus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 
@@ -58,6 +58,7 @@ export function PaymentModal({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const initRef = useRef(false)
+  const [initFailed, setInitFailed] = useState(false)
 
   // Credit state
   const [credits, setCredits] = useState<ReviewCredit[]>([])
@@ -109,39 +110,43 @@ export function PaymentModal({
     })
   }
 
-  const initializeCard = useCallback(async () => {
-    if (!open || initRef.current) return
-
-    // Wait for Square SDK — also inject script if not present
-    const waitForSquare = () =>
-      new Promise<void>((resolve) => {
+  const loadSquareScript = useCallback(() => {
+    return new Promise<void>((resolve) => {
+      if (window.Square) {
+        resolve()
+        return
+      }
+      // Ensure the script tag exists
+      if (!document.querySelector('script[src*="squarecdn"]')) {
+        const script = document.createElement('script')
+        script.src = 'https://web.squarecdn.com/v1/square.js'
+        script.async = true
+        document.head.appendChild(script)
+      }
+      const interval = setInterval(() => {
         if (window.Square) {
-          resolve()
-          return
-        }
-        // Ensure the script tag exists
-        if (!document.querySelector('script[src*="squarecdn"]')) {
-          const script = document.createElement('script')
-          script.src = 'https://web.squarecdn.com/v1/square.js'
-          script.async = true
-          document.head.appendChild(script)
-        }
-        const interval = setInterval(() => {
-          if (window.Square) {
-            clearInterval(interval)
-            resolve()
-          }
-        }, 200)
-        setTimeout(() => {
           clearInterval(interval)
           resolve()
-        }, 15000)
-      })
+        }
+      }, 200)
+      setTimeout(() => {
+        clearInterval(interval)
+        resolve()
+      }, 15000)
+    })
+  }, [])
 
-    await waitForSquare()
+  const initializeCard = useCallback(async () => {
+    if (!open) return
+    // Reset previous state
+    setInitFailed(false)
+    setError(null)
+
+    await loadSquareScript()
 
     if (!window.Square) {
       setError('Payment system failed to load. Please refresh and try again.')
+      setInitFailed(true)
       return
     }
 
@@ -149,6 +154,10 @@ export function PaymentModal({
       initRef.current = true
       const appId = process.env.NEXT_PUBLIC_SQUARE_APP_ID || ''
       const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || ''
+
+      if (!appId || !locationId) {
+        throw new Error('Payment configuration missing')
+      }
 
       const payments = await window.Square.payments(appId, locationId)
       const card = await payments.card({
@@ -170,24 +179,14 @@ export function PaymentModal({
         },
       })
 
-      // Wait for container to be in DOM
-      const waitForContainer = () =>
-        new Promise<void>((resolve) => {
-          if (document.getElementById('sq-card-container')) {
-            resolve()
-            return
-          }
-          const obs = new MutationObserver(() => {
-            if (document.getElementById('sq-card-container')) {
-              obs.disconnect()
-              resolve()
-            }
-          })
-          obs.observe(document.body, { childList: true, subtree: true })
-          setTimeout(() => { obs.disconnect(); resolve() }, 3000)
-        })
+      // The container is always rendered (hidden via CSS when not needed)
+      // Wait a moment for DOM to be fully ready
+      await new Promise((r) => setTimeout(r, 100))
 
-      await waitForContainer()
+      const container = document.getElementById('sq-card-container')
+      if (!container) {
+        throw new Error('Card container not found')
+      }
 
       await card.attach('#sq-card-container')
       cardRef.current = card
@@ -195,15 +194,32 @@ export function PaymentModal({
     } catch (err) {
       console.error('Square card init error:', err)
       setError('Failed to initialize payment form. Please try again.')
+      setInitFailed(true)
       initRef.current = false
     }
-  }, [open])
+  }, [open, loadSquareScript])
+
+  // Retry handler
+  const handleRetry = useCallback(() => {
+    if (cardRef.current) {
+      try { cardRef.current.destroy() } catch { /* ignore */ }
+      cardRef.current = null
+    }
+    setCardReady(false)
+    initRef.current = false
+    setInitFailed(false)
+    setError(null)
+    // Wait for DOM update then initialize
+    setTimeout(initializeCard, 500)
+  }, [initializeCard])
 
   useEffect(() => {
     if (open) {
       setError(null)
       setSuccess(false)
-      const timer = setTimeout(initializeCard, 200)
+      setInitFailed(false)
+      // Wait for modal slide-in animation to complete (300ms) before initializing
+      const timer = setTimeout(initializeCard, 500)
       return () => clearTimeout(timer)
     } else {
       if (cardRef.current) {
@@ -216,6 +232,7 @@ export function PaymentModal({
       }
       setCardReady(false)
       initRef.current = false
+      setInitFailed(false)
     }
   }, [open, initializeCard])
 
@@ -428,28 +445,9 @@ export function PaymentModal({
                 </div>
               )}
 
-              {/* Card Form — hide if credit covers full amount */}
+              {/* Card Form — ALWAYS rendered, hidden via CSS when credit covers full amount */}
               <div className="space-y-4">
-                {chargeAmount > 0 ? (
-                  <>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Card Details
-                    </label>
-                    <div
-                      id="sq-card-container"
-                      className="min-h-[130px] rounded-lg border border-gray-200 bg-white p-1"
-                    >
-                      {!cardReady && (
-                        <div className="flex items-center justify-center py-10">
-                          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-                          <span className="ml-2 text-sm text-gray-400">
-                            Loading payment form...
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
+                {chargeAmount === 0 && (
                   <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center">
                     <CheckCircle className="mx-auto mb-2 h-6 w-6 text-green-600" />
                     <p className="text-sm font-medium text-green-800">
@@ -459,11 +457,43 @@ export function PaymentModal({
                   </div>
                 )}
 
-                {/* Error */}
+                {/* Always keep the card container in the DOM so Square doesn't lose its reference */}
+                <div className={chargeAmount === 0 ? 'hidden' : ''}>
+                  <label className="block text-sm font-medium text-gray-700 mb-4">
+                    Card Details
+                  </label>
+                  <div
+                    id="sq-card-container"
+                    className="min-h-[130px] rounded-lg border border-gray-200 bg-white p-1"
+                  >
+                    {!cardReady && !initFailed && (
+                      <div className="flex items-center justify-center py-10">
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                        <span className="ml-2 text-sm text-gray-400">
+                          Loading payment form...
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Error with retry button */}
                 {error && (
-                  <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                    <p className="text-sm text-red-700">{error}</p>
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-3">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                    {initFailed && (
+                      <button
+                        type="button"
+                        onClick={handleRetry}
+                        className="mt-2 flex items-center gap-1.5 rounded-md bg-red-100 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-200"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        Retry
+                      </button>
+                    )}
                   </div>
                 )}
 
