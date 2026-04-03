@@ -72,33 +72,33 @@ export const AUTO_SERVICES = [
     slug: 'premium-exterior',
     serviceType: 'premium_exterior' as const,
     description: 'Express Exterior plus clay bar decontamination, one-step polish, synthetic sealant, and trim restoration.',
-    basePrice: 34900,
+    basePrice: 24900,
     duration: 150,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 10000,
+    depositAmount: 7500,
   },
   {
     name: 'Premium Interior',
     slug: 'premium-interior',
     serviceType: 'premium_interior' as const,
     description: 'Express Interior plus deep steam extraction, leather conditioning, stain treatment, and UV protectant.',
-    basePrice: 38900,
+    basePrice: 27900,
     duration: 150,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 11500,
+    depositAmount: 8500,
   },
   {
     name: 'Premium Detail',
     slug: 'premium-detail',
     serviceType: 'premium_detail' as const,
     description: 'Our finest service — complete premium exterior and interior detail with engine bay cleaning and paint correction consultation.',
-    basePrice: 57900,
+    basePrice: 44900,
     duration: 300,
     requiresQuote: false,
     requiresDeposit: true,
-    depositAmount: 17500,
+    depositAmount: 13500,
     mostPopular: true,
   },
 ]
@@ -296,9 +296,9 @@ export const OFFICE_PLANS: OfficePlan[] = [
       'Monthly facility reports',
     ],
     pricing: {
-      small:  { daily: 310000, '3x_week': 215000, weekly: 89500, bi_weekly: 51000, monthly: 32000, quarterly: 75000 },
-      medium: { daily: 595000, '3x_week': 420000, weekly: 190000, bi_weekly: 110000, monthly: 65000, quarterly: 160000 },
-      large:  { daily: 1050000, '3x_week': 740000, weekly: 360000, bi_weekly: 205000, monthly: 120000, quarterly: 300000 },
+      small:  { daily: 264000, '3x_week': 183000, weekly: 76000, bi_weekly: 43500, monthly: 27500, quarterly: 64000 },
+      medium: { daily: 506000, '3x_week': 357000, weekly: 162000, bi_weekly: 93500, monthly: 55000, quarterly: 136000 },
+      large:  { daily: 893000, '3x_week': 629000, weekly: 306000, bi_weekly: 174000, monthly: 102000, quarterly: 255000 },
     },
   },
 ]
@@ -421,7 +421,7 @@ export const BUSINESS_TYPES: {
 const COMMERCIAL_BASE_RATE: Record<'essential' | 'professional' | 'premier', number> = {
   essential: 9,    // $0.09/sqft/visit
   professional: 11, // $0.11/sqft/visit
-  premier: 14,     // $0.14/sqft/visit
+  premier: 12,     // $0.12/sqft/visit
 }
 
 // Frequency discount — more visits = lower per-visit rate
@@ -800,8 +800,8 @@ export const SERVICES: ServiceDefinition[] = [
     duration: 150,
     tier: 'premium',
     includes: ['Everything in Express Exterior', 'Clay bar decontamination', 'One-step polish', 'Synthetic sealant', 'Trim restoration', 'Exhaust tip polish'],
-    pricing: { sedan: 34900, compact_suv: 43900, large_suv: 53900 },
-    depositAmount: 10000,
+    pricing: { sedan: 24900, compact_suv: 31900, large_suv: 39900 },
+    depositAmount: 7500,
   },
   {
     slug: 'premium-interior',
@@ -810,8 +810,8 @@ export const SERVICES: ServiceDefinition[] = [
     duration: 150,
     tier: 'premium',
     includes: ['Everything in Express Interior', 'Steam / hot water extraction', 'Leather cleaning & conditioning', 'Stain treatment', 'UV protectant on plastics'],
-    pricing: { sedan: 38900, compact_suv: 48900, large_suv: 59900 },
-    depositAmount: 11500,
+    pricing: { sedan: 27900, compact_suv: 34900, large_suv: 44900 },
+    depositAmount: 8500,
   },
   {
     slug: 'premium-detail',
@@ -821,7 +821,7 @@ export const SERVICES: ServiceDefinition[] = [
     tier: 'premium',
     popular: true,
     includes: ['Everything in Premium Exterior', 'Everything in Premium Interior', 'Engine bay cleaning', 'Paint correction consultation', 'Final LED inspection'],
-    pricing: { sedan: 57900, compact_suv: 72900, large_suv: 89900 },
-    depositAmount: 17500,
+    pricing: { sedan: 44900, compact_suv: 56900, large_suv: 69900 },
+    depositAmount: 13500,
   },
 ]
