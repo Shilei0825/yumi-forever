@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       session_id: sessionId,
       profile_id: user.id,
       sender: 'admin',
-      message: `${profile.full_name}: ${message}`,
+      message,
     })
 
     if (error) {

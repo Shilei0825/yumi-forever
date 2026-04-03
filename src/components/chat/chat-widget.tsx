@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { MessageCircle, X, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 interface ChatMessage {
   id: string
@@ -23,8 +24,9 @@ export function ChatWidget({ className }: { className?: string }) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const sessionIdRef = useRef<string>('')
+  const profileIdRef = useRef<string | null>(null)
 
-  // Get or create session ID
+  // Get or create session ID + detect logged-in user
   useEffect(() => {
     const stored = localStorage.getItem('yumi_chat_session')
     if (stored) {
@@ -34,6 +36,12 @@ export function ChatWidget({ className }: { className?: string }) {
       sessionIdRef.current = id
       localStorage.setItem('yumi_chat_session', id)
     }
+
+    // Detect logged-in user
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) profileIdRef.current = user.id
+    })
   }, [])
 
   const scrollToBottom = useCallback(() => {
@@ -123,6 +131,7 @@ export function ChatWidget({ className }: { className?: string }) {
         body: JSON.stringify({
           message: text,
           sessionId: sessionIdRef.current,
+          profileId: profileIdRef.current,
         }),
       })
     } catch {
