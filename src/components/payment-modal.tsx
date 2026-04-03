@@ -1,9 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { X, CreditCard, Loader2, CheckCircle, AlertCircle, Lock } from 'lucide-react'
+import { X, CreditCard, Loader2, CheckCircle, AlertCircle, Lock, Gift, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
+
+interface ReviewCredit {
+  id: string
+  amount: number
+  remaining: number
+  status: string
+  expires_at: string
+}
 
 interface PaymentModalProps {
   open: boolean
@@ -51,10 +59,59 @@ export function PaymentModal({
   const [success, setSuccess] = useState(false)
   const initRef = useRef(false)
 
+  // Credit state
+  const [credits, setCredits] = useState<ReviewCredit[]>([])
+  const [totalAvailable, setTotalAvailable] = useState(0)
+  const [creditToApply, setCreditToApply] = useState(0)
+  const [loadingCredits, setLoadingCredits] = useState(false)
+
+  const chargeAmount = Math.max(0, amount - creditToApply)
+
+  // Fetch available credits when modal opens
+  useEffect(() => {
+    if (!open) return
+    setLoadingCredits(true)
+    fetch('/api/credits')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.totalAvailable > 0) {
+          setCredits(data.credits.filter((c: ReviewCredit) => c.status === 'active'))
+          setTotalAvailable(data.totalAvailable)
+        } else {
+          setCredits([])
+          setTotalAvailable(0)
+        }
+      })
+      .catch(() => {
+        setCredits([])
+        setTotalAvailable(0)
+      })
+      .finally(() => setLoadingCredits(false))
+  }, [open])
+
+  // Reset credit when modal closes
+  useEffect(() => {
+    if (!open) {
+      setCreditToApply(0)
+      setCredits([])
+      setTotalAvailable(0)
+    }
+  }, [open])
+
+  const maxCredit = Math.min(totalAvailable, amount)
+
+  function adjustCredit(delta: number) {
+    setCreditToApply((prev) => {
+      const next = prev + delta
+      if (next < 0) return 0
+      if (next > maxCredit) return maxCredit
+      return next
+    })
+  }
+
   const initializeCard = useCallback(async () => {
     if (!open || initRef.current) return
 
-    // Wait for Square SDK script to load
     const waitForSquare = () =>
       new Promise<void>((resolve) => {
         if (window.Square) {
@@ -67,7 +124,6 @@ export function PaymentModal({
             resolve()
           }
         }, 100)
-        // Timeout after 10 seconds
         setTimeout(() => {
           clearInterval(interval)
           resolve()
@@ -120,11 +176,9 @@ export function PaymentModal({
     if (open) {
       setError(null)
       setSuccess(false)
-      // Small delay so DOM is rendered
       const timer = setTimeout(initializeCard, 200)
       return () => clearTimeout(timer)
     } else {
-      // Cleanup card on close
       if (cardRef.current) {
         try {
           cardRef.current.destroy()
@@ -139,30 +193,39 @@ export function PaymentModal({
   }, [open, initializeCard])
 
   async function handlePay() {
-    if (!cardRef.current || processing) return
+    if (processing) return
+
+    // If credit covers full amount, no card needed
+    const needsCard = chargeAmount > 0
+
+    if (needsCard && !cardRef.current) return
 
     setProcessing(true)
     setError(null)
 
     try {
-      const result = await cardRef.current.tokenize()
+      let sourceId: string | null = null
 
-      if (result.status !== 'OK' || !result.token) {
-        const errMsg = result.errors?.[0]?.message || 'Card verification failed'
-        setError(errMsg)
-        setProcessing(false)
-        return
+      if (needsCard) {
+        const result = await cardRef.current!.tokenize()
+        if (result.status !== 'OK' || !result.token) {
+          const errMsg = result.errors?.[0]?.message || 'Card verification failed'
+          setError(errMsg)
+          setProcessing(false)
+          return
+        }
+        sourceId = result.token
       }
 
-      // Send token to server
       const res = await fetch('/api/square/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          source_id: result.token,
+          source_id: sourceId,
           booking_id: bookingId,
-          amount,
+          amount: chargeAmount,
           payment_type: paymentType,
+          credit_amount: creditToApply > 0 ? creditToApply : undefined,
         }),
       })
 
@@ -178,7 +241,7 @@ export function PaymentModal({
       setTimeout(() => {
         onSuccess(data)
       }, 1500)
-    } catch (err) {
+    } catch {
       setError('Payment failed. Please check your card details and try again.')
     } finally {
       setProcessing(false)
@@ -214,7 +277,6 @@ export function PaymentModal({
 
         <div className="px-6 py-6">
           {success ? (
-            /* Success State */
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
                 <CheckCircle className="h-8 w-8 text-green-600" />
@@ -223,8 +285,20 @@ export function PaymentModal({
                 Payment Successful!
               </h3>
               <p className="mt-2 text-sm text-gray-500">
-                Your {paymentType === 'deposit' ? 'deposit' : 'payment'} of{' '}
-                {formatCurrency(amount)} has been processed.
+                {creditToApply > 0 && chargeAmount > 0 ? (
+                  <>
+                    {formatCurrency(creditToApply)} credit applied + {formatCurrency(chargeAmount)} charged to your card.
+                  </>
+                ) : creditToApply > 0 ? (
+                  <>
+                    {formatCurrency(creditToApply)} credit applied. No card charge needed!
+                  </>
+                ) : (
+                  <>
+                    Your {paymentType === 'deposit' ? 'deposit' : 'payment'} of{' '}
+                    {formatCurrency(amount)} has been processed.
+                  </>
+                )}
               </p>
             </div>
           ) : (
@@ -250,24 +324,113 @@ export function PaymentModal({
                 </div>
               </div>
 
-              {/* Card Form */}
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Card Details
-                </label>
-                <div
-                  id="sq-card-container"
-                  className="min-h-[130px] rounded-lg border border-gray-200 bg-white p-1"
-                >
-                  {!cardReady && (
-                    <div className="flex items-center justify-center py-10">
-                      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-                      <span className="ml-2 text-sm text-gray-400">
-                        Loading payment form...
+              {/* Review Credits Section */}
+              {!loadingCredits && totalAvailable > 0 && (
+                <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-green-600" />
+                    <p className="text-sm font-medium text-green-800">
+                      You have {formatCurrency(totalAvailable)} in review credits!
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-green-700">Apply credit:</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => adjustCredit(-100)}
+                        disabled={creditToApply <= 0}
+                        className="flex h-8 w-8 items-center justify-center rounded-full border border-green-300 bg-white text-green-700 transition-colors hover:bg-green-100 disabled:opacity-40"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="min-w-[80px] text-center text-lg font-bold text-green-800">
+                        {formatCurrency(creditToApply)}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => adjustCredit(100)}
+                        disabled={creditToApply >= maxCredit}
+                        className="flex h-8 w-8 items-center justify-center rounded-full border border-green-300 bg-white text-green-700 transition-colors hover:bg-green-100 disabled:opacity-40"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick buttons */}
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCreditToApply(0)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        creditToApply === 0
+                          ? 'bg-green-700 text-white'
+                          : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'
+                      }`}
+                    >
+                      None
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCreditToApply(maxCredit)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        creditToApply === maxCredit
+                          ? 'bg-green-700 text-white'
+                          : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'
+                      }`}
+                    >
+                      Use All ({formatCurrency(maxCredit)})
+                    </button>
+                  </div>
+
+                  {/* Updated total */}
+                  {creditToApply > 0 && (
+                    <div className="mt-3 border-t border-green-200 pt-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-green-700">Credit discount:</span>
+                        <span className="font-medium text-green-700">-{formatCurrency(creditToApply)}</span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-sm">
+                        <span className="font-medium text-gray-900">Amount to charge:</span>
+                        <span className="text-lg font-bold text-gray-900">{formatCurrency(chargeAmount)}</span>
+                      </div>
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Card Form — hide if credit covers full amount */}
+              <div className="space-y-4">
+                {chargeAmount > 0 ? (
+                  <>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Card Details
+                    </label>
+                    <div
+                      id="sq-card-container"
+                      className="min-h-[130px] rounded-lg border border-gray-200 bg-white p-1"
+                    >
+                      {!cardReady && (
+                        <div className="flex items-center justify-center py-10">
+                          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                          <span className="ml-2 text-sm text-gray-400">
+                            Loading payment form...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center">
+                    <CheckCircle className="mx-auto mb-2 h-6 w-6 text-green-600" />
+                    <p className="text-sm font-medium text-green-800">
+                      Your credits cover the full amount!
+                    </p>
+                    <p className="mt-1 text-xs text-green-600">No card payment needed.</p>
+                  </div>
+                )}
 
                 {/* Error */}
                 {error && (
@@ -280,7 +443,7 @@ export function PaymentModal({
                 {/* Pay Button */}
                 <Button
                   onClick={handlePay}
-                  disabled={!cardReady || processing}
+                  disabled={(chargeAmount > 0 && !cardReady) || processing}
                   className="w-full py-6 text-base font-semibold"
                   size="lg"
                 >
@@ -289,16 +452,20 @@ export function PaymentModal({
                       <Loader2 className="h-5 w-5 animate-spin" />
                       Processing...
                     </>
+                  ) : chargeAmount > 0 ? (
+                    <>Pay {formatCurrency(chargeAmount)}{creditToApply > 0 ? ` + ${formatCurrency(creditToApply)} credit` : ''}</>
                   ) : (
-                    <>Pay {formatCurrency(amount)}</>
+                    <>Apply {formatCurrency(creditToApply)} Credit</>
                   )}
                 </Button>
 
                 {/* Security Note */}
-                <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
-                  <Lock className="h-3 w-3" />
-                  <span>Secured by Square. Your card info never touches our servers.</span>
-                </div>
+                {chargeAmount > 0 && (
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+                    <Lock className="h-3 w-3" />
+                    <span>Secured by Square. Your card info never touches our servers.</span>
+                  </div>
+                )}
               </div>
             </>
           )}
