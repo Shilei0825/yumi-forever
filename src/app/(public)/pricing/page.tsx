@@ -152,7 +152,7 @@ export default function PricingPage() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-5 text-right">
                       <Button size="sm" asChild>
-                        <Link href={`/book?service=${service.slug}`}>Book</Link>
+                        <Link href={`/book?service=${service.slug}`}>Get Quote</Link>
                       </Button>
                     </td>
                   </tr>
@@ -212,7 +212,7 @@ export default function PricingPage() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-5 text-right">
                       <Button size="sm" asChild>
-                        <Link href={`/book?service=${service.slug}`}>Book</Link>
+                        <Link href={`/book?service=${service.slug}`}>Get Quote</Link>
                       </Button>
                     </td>
                   </tr>
@@ -263,7 +263,7 @@ export default function PricingPage() {
 
                   <div className="mt-4">
                     <Button size="sm" className="w-full" asChild>
-                      <Link href={`/book?service=${service.slug}`}>Book</Link>
+                      <Link href={`/book?service=${service.slug}`}>Get Quote</Link>
                     </Button>
                   </div>
                 </div>
@@ -321,7 +321,7 @@ export default function PricingPage() {
 
                   <div className="mt-4">
                     <Button size="sm" className="w-full" asChild>
-                      <Link href={`/book?service=${service.slug}`}>Book</Link>
+                      <Link href={`/book?service=${service.slug}`}>Get Quote</Link>
                     </Button>
                   </div>
                 </div>
@@ -464,7 +464,7 @@ export default function PricingPage() {
                       </Button>
                       <Button size="sm" asChild>
                         <Link href={`/book/home?service=${service.slug}`}>
-                          Book Now
+                          Get Quote
                         </Link>
                       </Button>
                     </div>

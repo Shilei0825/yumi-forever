@@ -61,20 +61,12 @@ export default function AutoCarePage() {
             From a quick exterior wash to full paint correction and ceramic coating,
             our detailing experts bring the showroom to your driveway.
           </p>
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+          <div className="mt-10">
             <Button size="lg" className="bg-white text-primary hover:bg-neutral-100" asChild>
               <Link href="/book">
-                Book Now
+                Get Instant Quote & Book Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white bg-transparent text-white hover:bg-white/10"
-              asChild
-            >
-              <Link href="/contact">Get a Quote</Link>
             </Button>
           </div>
         </div>
@@ -121,7 +113,7 @@ export default function AutoCarePage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href="/book">Book Now</Link>
+              <Link href="/book">Get Instant Quote & Book Now</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/pricing">View Pricing</Link>

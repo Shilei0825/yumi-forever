@@ -325,7 +325,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 ) : (
                   <Button size="lg" className="bg-white text-primary hover:bg-neutral-100" asChild>
                     <Link href={getBookingUrl(slug)}>
-                      Book This Service
+                      Get Instant Quote & Book Now
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
@@ -382,7 +382,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               ) : (
                 <Button size="lg" asChild>
                   <Link href={getBookingUrl(slug)}>
-                    Book This Service
+                    Get Instant Quote & Book Now
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>

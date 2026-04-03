@@ -80,7 +80,7 @@ export default function HomeCarePage() {
           <div className="mt-10">
             <Button size="lg" className="bg-white text-primary hover:bg-neutral-100" asChild>
               <Link href="/book/home">
-                Book Home Cleaning
+                Get Instant Quote & Book Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -139,7 +139,7 @@ export default function HomeCarePage() {
                       <Link href={`/services/${service.slug}`}>Details</Link>
                     </Button>
                     <Button className="flex-1" asChild>
-                      <Link href={`/book/home?service=${service.slug}`}>Book Now</Link>
+                      <Link href={`/book/home?service=${service.slug}`}>Get Instant Quote</Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -187,7 +187,7 @@ export default function HomeCarePage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
-              <Link href="/book/home">Book Now</Link>
+              <Link href="/book/home">Get Instant Quote & Book Now</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/pricing">View Pricing</Link>
