@@ -11,6 +11,7 @@ import {
   PanelLeft,
   LogOut,
   User,
+  ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/constants"
@@ -45,9 +46,22 @@ export function DashboardLayout({
         )}
       >
         {/* Sidebar Header */}
-        <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
-          {!sidebarCollapsed && (
-            <Link href="/">
+        <div className="border-b border-gray-200 px-4 py-4">
+          {!sidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-3">
+              <Link href="/">
+                <Image src="/logo-horizontal.png" alt={BRAND.name} width={1536} height={1024} className="h-14 w-auto" />
+              </Link>
+              <Link
+                href="/"
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Back to Website
+              </Link>
+            </div>
+          ) : (
+            <Link href="/" className="flex justify-center">
               <Image src="/logo-horizontal.png" alt={BRAND.name} width={1536} height={1024} className="h-8 w-auto" />
             </Link>
           )}
@@ -55,8 +69,8 @@ export function DashboardLayout({
             type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900",
-              sidebarCollapsed && "mx-auto"
+              "mt-2 inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900",
+              sidebarCollapsed ? "mx-auto flex" : "ml-auto flex"
             )}
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -159,18 +173,27 @@ export function DashboardLayout({
           mobileNavOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
-          <Link href="/">
-            <Image src="/logo-horizontal.png" alt={BRAND.name} width={1536} height={1024} className="h-8 w-auto" />
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen(false)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-            aria-label="Close navigation"
+        <div className="border-b border-gray-200 px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/">
+              <Image src="/logo-horizontal.png" alt={BRAND.name} width={1536} height={1024} className="h-12 w-auto" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+              aria-label="Close navigation"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <Link
+            href="/"
+            className="mt-2 flex items-center gap-1.5 rounded-md px-1 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-900"
           >
-            <X className="h-4 w-4" />
-          </button>
+            <ExternalLink className="h-3 w-3" />
+            Back to Website
+          </Link>
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">

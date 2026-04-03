@@ -69,6 +69,20 @@ function SignupForm() {
     setLoading(true)
 
     try {
+      // Check for duplicate email/phone before signup
+      const checkRes = await fetch('/api/auth/check-duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, phone: formData.phone }),
+      })
+      const checkData = await checkRes.json()
+
+      if (checkData.errors && checkData.errors.length > 0) {
+        setError(checkData.errors.map((e: { message: string }) => e.message).join(' '))
+        setLoading(false)
+        return
+      }
+
       const supabase = createClient()
 
       const { error: signUpError } = await supabase.auth.signUp({
