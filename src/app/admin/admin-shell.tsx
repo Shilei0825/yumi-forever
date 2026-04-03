@@ -12,6 +12,7 @@ import {
   Crown,
   Star,
   SlidersHorizontal,
+  MessageCircle,
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import type { Profile } from '@/types'
@@ -28,6 +29,7 @@ const adminNavigation = [
   { label: 'Commercial', href: '/admin/commercial', icon: <Building2 className="h-5 w-5" /> },
   { label: 'Memberships', href: '/admin/memberships', icon: <Crown className="h-5 w-5" /> },
   { label: 'Reviews', href: '/admin/reviews', icon: <Star className="h-5 w-5" /> },
+  { label: 'Messages', href: '/admin/messages', icon: <MessageCircle className="h-5 w-5" /> },
 ]
 
 interface AdminShellProps {

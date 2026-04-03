@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
+import { MessageCircle, X, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatMessage {
   id: string
-  sender: 'user' | 'bot'
+  sender: 'user' | 'admin'
   message: string
 }
 
@@ -18,7 +18,7 @@ export function ChatWidget({ className }: { className?: string }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
   const [greeted, setGreeted] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -26,13 +26,13 @@ export function ChatWidget({ className }: { className?: string }) {
 
   // Get or create session ID
   useEffect(() => {
-    const stored = sessionStorage.getItem('yumi_chat_session')
+    const stored = localStorage.getItem('yumi_chat_session')
     if (stored) {
       sessionIdRef.current = stored
     } else {
       const id = generateSessionId()
       sessionIdRef.current = id
-      sessionStorage.setItem('yumi_chat_session', id)
+      localStorage.setItem('yumi_chat_session', id)
     }
   }, [])
 
@@ -44,19 +44,56 @@ export function ChatWidget({ className }: { className?: string }) {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Show static greeting when first opened (no API call needed)
+  // Static greeting on first open
   useEffect(() => {
-    if (open && !greeted && messages.length === 0) {
+    if (open && !greeted) {
       setGreeted(true)
-      setMessages([
-        {
-          id: '1',
-          sender: 'bot',
-          message: "Hi there! I'm Yumi, your virtual assistant. How can I help you today? Ask me about our auto detailing, home cleaning, or commercial services!",
-        },
-      ])
+      // Load any existing messages from this session
+      fetch(`/api/chat?sessionId=${sessionIdRef.current}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.messages && data.messages.length > 0) {
+            setMessages(
+              data.messages.map((m: { id: string; sender: string; message: string }) => ({
+                id: m.id,
+                sender: m.sender === 'user' ? 'user' : 'admin',
+                message: m.message,
+              }))
+            )
+          }
+        })
+        .catch(() => {})
     }
-  }, [open, greeted, messages.length])
+  }, [open, greeted])
+
+  // Poll for new admin replies every 10 seconds when chat is open
+  useEffect(() => {
+    if (!open || !greeted) return
+
+    const interval = setInterval(() => {
+      fetch(`/api/chat?sessionId=${sessionIdRef.current}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.messages) {
+            const mapped: ChatMessage[] = data.messages.map(
+              (m: { id: string; sender: string; message: string }) => ({
+                id: m.id,
+                sender: m.sender === 'user' ? 'user' : 'admin',
+                message: m.message,
+              })
+            )
+            // Only update if message count changed (avoid re-renders)
+            setMessages((prev) => {
+              if (prev.length !== mapped.length) return mapped
+              return prev
+            })
+          }
+        })
+        .catch(() => {})
+    }, 10000)
+
+    return () => clearInterval(interval)
+  }, [open, greeted])
 
   // Focus input when opened
   useEffect(() => {
@@ -67,7 +104,7 @@ export function ChatWidget({ className }: { className?: string }) {
 
   async function handleSend() {
     const text = input.trim()
-    if (!text || loading) return
+    if (!text || sending) return
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -77,35 +114,21 @@ export function ChatWidget({ className }: { className?: string }) {
 
     setMessages((prev) => [...prev, userMsg])
     setInput('')
-    setLoading(true)
+    setSending(true)
 
     try {
-      const res = await fetch('/api/chat', {
+      await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
           sessionId: sessionIdRef.current,
-          history: [...messages, userMsg].slice(-10),
         }),
       })
-      const data = await res.json()
-
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), sender: 'bot', message: data.reply },
-      ])
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          sender: 'bot',
-          message: "Sorry, I'm having trouble right now. Please call us at (555) 123-4567 for immediate help!",
-        },
-      ])
+      // Message still shown locally even if save fails
     } finally {
-      setLoading(false)
+      setSending(false)
     }
   }
 
@@ -115,9 +138,7 @@ export function ChatWidget({ className }: { className?: string }) {
       <div
         className={cn(
           'fixed z-[80] transition-all duration-300 ease-in-out',
-          // Mobile: full width bottom sheet
           'inset-x-0 bottom-0 sm:inset-auto sm:bottom-24 sm:right-6',
-          // Desktop: fixed width card
           'sm:w-96',
           open
             ? 'translate-y-0 opacity-100'
@@ -134,7 +155,7 @@ export function ChatWidget({ className }: { className?: string }) {
               </div>
               <div>
                 <p className="text-sm font-semibold">Yumi Forever</p>
-                <p className="text-xs text-violet-200">We typically reply instantly</p>
+                <p className="text-xs text-violet-200">Send us a message</p>
               </div>
             </div>
             <button
@@ -149,6 +170,13 @@ export function ChatWidget({ className }: { className?: string }) {
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-3">
             <div className="space-y-3">
+              {/* Static welcome */}
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl bg-gray-100 px-4 py-2.5 text-sm leading-relaxed text-gray-800">
+                  Hi there! Send us a message and our team will get back to you shortly. You can also call us at (555) 123-4567.
+                </div>
+              </div>
+
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -169,13 +197,6 @@ export function ChatWidget({ className }: { className?: string }) {
                   </div>
                 </div>
               ))}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="rounded-2xl bg-gray-100 px-4 py-2.5">
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                  </div>
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -196,11 +217,11 @@ export function ChatWidget({ className }: { className?: string }) {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type a message..."
                 className="flex-1 rounded-full border border-gray-300 px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-gray-400 focus:border-violet-400 focus:ring-1 focus:ring-violet-400"
-                disabled={loading}
+                disabled={sending}
               />
               <button
                 type="submit"
-                disabled={!input.trim() || loading}
+                disabled={!input.trim() || sending}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-700 text-white transition-colors hover:bg-violet-800 disabled:bg-gray-300 disabled:text-gray-500"
                 aria-label="Send message"
               >
@@ -211,7 +232,7 @@ export function ChatWidget({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Floating Bubble Button — hidden on mobile (mobile has its own button) */}
+      {/* Floating Bubble Button — desktop only */}
       <button
         onClick={() => setOpen(!open)}
         className={cn(
@@ -223,7 +244,7 @@ export function ChatWidget({ className }: { className?: string }) {
         <MessageCircle className="h-6 w-6" />
       </button>
 
-      {/* Mobile chat button trigger (exposed for MobileCTA to call) */}
+      {/* Hidden trigger for mobile CTA button */}
       <button
         id="mobile-chat-trigger"
         onClick={() => setOpen(!open)}

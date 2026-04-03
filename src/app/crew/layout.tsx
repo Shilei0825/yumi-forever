@@ -5,6 +5,7 @@ import {
   Calendar,
   DollarSign,
   User,
+  MessageCircle,
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 
@@ -12,6 +13,7 @@ const crewNavigation = [
   { label: 'Today', href: '/crew', icon: <Briefcase className="h-5 w-5" /> },
   { label: 'Jobs', href: '/crew/jobs', icon: <Calendar className="h-5 w-5" /> },
   { label: 'Pay', href: '/crew/pay', icon: <DollarSign className="h-5 w-5" /> },
+  { label: 'Messages', href: '/crew/messages', icon: <MessageCircle className="h-5 w-5" /> },
   { label: 'Profile', href: '/crew/profile', icon: <User className="h-5 w-5" /> },
 ]
 
