@@ -44,37 +44,17 @@ export function ChatWidget({ className }: { className?: string }) {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Send greeting when first opened
+  // Show static greeting when first opened (no API call needed)
   useEffect(() => {
     if (open && !greeted && messages.length === 0) {
       setGreeted(true)
-      setLoading(true)
-
-      fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: 'Hi, I just opened the chat widget on your website.',
-          sessionId: sessionIdRef.current,
-          history: [],
-        }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setMessages([
-            { id: '1', sender: 'bot', message: data.reply },
-          ])
-        })
-        .catch(() => {
-          setMessages([
-            {
-              id: '1',
-              sender: 'bot',
-              message: "Hi there! Welcome to Yumi Forever. How can I help you today? Feel free to ask about our cleaning and detailing services!",
-            },
-          ])
-        })
-        .finally(() => setLoading(false))
+      setMessages([
+        {
+          id: '1',
+          sender: 'bot',
+          message: "Hi there! I'm Yumi, your virtual assistant. How can I help you today? Ask me about our auto detailing, home cleaning, or commercial services!",
+        },
+      ])
     }
   }, [open, greeted, messages.length])
 
