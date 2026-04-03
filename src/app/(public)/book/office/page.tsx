@@ -405,7 +405,7 @@ function OfficeBookingPageInner() {
   ])
 
   // ----- AI analysis state -----
-  const [aiAdjustment, setAiAdjustment] = useState(0)
+  const [aiPriceAdjustment, setAiPriceAdjustment] = useState(0)
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [aiFactors, setAiFactors] = useState<string[]>([])
   const [aiLoading, setAiLoading] = useState(false)
@@ -414,7 +414,7 @@ function OfficeBookingPageInner() {
   // Debounced Gemini analysis when special requirements change
   useEffect(() => {
     if (!booking.specialRequirements || booking.specialRequirements.trim().length < 10) {
-      setAiAdjustment(0)
+      setAiPriceAdjustment(0)
       setAiSuggestion('')
       setAiFactors([])
       return
@@ -439,7 +439,7 @@ function OfficeBookingPageInner() {
           }),
         })
         const data = await res.json()
-        setAiAdjustment(data.confidenceAdjustment || 0)
+        setAiPriceAdjustment(data.priceAdjustmentPercent || 0)
         setAiSuggestion(data.suggestion || '')
         setAiFactors(data.factors || [])
       } catch {
@@ -463,10 +463,8 @@ function OfficeBookingPageInner() {
       hasServiceLevel: !!booking.planTier,
       hasFrequency: !!booking.frequency,
       hasContract: booking.contractMonths > 1,
-      hasSpecialNotes: !!booking.specialRequirements.trim(),
-      aiAdjustment,
     })
-  }, [booking.businessType, booking.sqftRange, booking.restrooms, booking.planTier, booking.frequency, booking.contractMonths, booking.specialRequirements, aiAdjustment])
+  }, [booking.businessType, booking.sqftRange, booking.restrooms, booking.planTier, booking.frequency, booking.contractMonths])
 
   // ----- Validation helpers -----
 

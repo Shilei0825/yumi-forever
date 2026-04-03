@@ -23,6 +23,7 @@ export interface HistoricalData {
 export interface QuoteAnalysisResult {
   factors: string[]
   confidenceAdjustment: number
+  priceAdjustmentPercent: number // -30 to +30, AI-driven price modifier
   suggestion: string
 }
 
@@ -43,7 +44,7 @@ export async function analyzeQuoteNotes(
 ): Promise<QuoteAnalysisResult> {
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY
   if (!apiKey) {
-    return { factors: [], confidenceAdjustment: 0, suggestion: '' }
+    return { factors: [], confidenceAdjustment: 0, priceAdjustmentPercent: 0, suggestion: '' }
   }
 
   let historicalSection = ''
@@ -123,19 +124,18 @@ Analyze the notes for factors affecting pricing accuracy. Consider:
 Respond with ONLY a JSON object (no markdown, no code fences):
 {
   "factors": ["factor1", "factor2"],
-  "confidenceAdjustment": -5,
+  "priceAdjustmentPercent": 0,
   "suggestion": "Brief suggestion for the customer about quote accuracy"
 }
 
-Rules for confidenceAdjustment — this value DIRECTLY affects the displayed quote accuracy percentage:
-- +8 to +12 if notes provide genuinely useful details that help VERIFY the estimate (e.g. describing exact condition, listing specific areas, confirming standard layout, mentioning relevant details about the space/vehicle)
-- +3 to +7 if notes contain some helpful details but are partially vague
-- 0 if notes are generic platitudes like "please clean well" or "do a good job" — these add no pricing information
-- -3 to -8 if notes suggest minor additional work or moderate complexity
-- -10 to -20 if notes suggest major additional work or unusual complexity
-- -20 to -30 if notes describe highly unusual situation that's hard to estimate
+Rules for priceAdjustmentPercent — this DIRECTLY changes the quoted price by this percentage:
+- 0 if notes are nonsense, jokes, irrelevant, or generic platitudes like "please clean well" or "do a good job" — these provide NO pricing information, so price stays the same
+- 0 if notes simply describe a standard/normal situation that matches the selections already made
+- +5 to +15 if notes reveal EXTRA work not captured by the form selections (e.g. "heavy pet hair everywhere", "ceiling fan cleaning needed", "garage also needs cleaning", "3 large dogs")
+- +15 to +30 if notes reveal major additional work (e.g. "hoarder house", "smoke damage throughout", "construction dust cleanup")
+- -5 to -15 if notes indicate LESS work than expected (e.g. "only need kitchen and bathroom", "small studio barely used")
 
-The KEY question is: do the customer's notes help us VERIFY that our pricing model matches their actual situation? Specific, detailed descriptions of the space/vehicle/condition increase accuracy. Vague or irrelevant comments do not.
+CRITICAL: Only adjust the price if the notes contain REAL, SPECIFIC information about the job that would genuinely change the amount of work required. Random text, jokes, or vague comments = 0 adjustment.
 
 Keep suggestion under 120 characters. Return 1-4 factors max.`
 
@@ -154,14 +154,14 @@ Keep suggestion under 120 characters. Return 1-4 factors max.`
 
     if (!res.ok) {
       console.error('Gemini API error:', res.status)
-      return { factors: [], confidenceAdjustment: 0, suggestion: '' }
+      return { factors: [], confidenceAdjustment: 0, priceAdjustmentPercent: 0, suggestion: '' }
     }
 
     const data: GeminiResponse = await res.json()
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
 
     if (!text) {
-      return { factors: [], confidenceAdjustment: 0, suggestion: '' }
+      return { factors: [], confidenceAdjustment: 0, priceAdjustmentPercent: 0, suggestion: '' }
     }
 
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
@@ -169,15 +169,16 @@ Keep suggestion under 120 characters. Return 1-4 factors max.`
 
     return {
       factors: Array.isArray(parsed.factors) ? parsed.factors.slice(0, 4) : [],
-      confidenceAdjustment:
-        typeof parsed.confidenceAdjustment === 'number'
-          ? Math.max(-30, Math.min(12, parsed.confidenceAdjustment))
+      confidenceAdjustment: 0, // deprecated — kept for backward compat
+      priceAdjustmentPercent:
+        typeof parsed.priceAdjustmentPercent === 'number'
+          ? Math.max(-30, Math.min(30, parsed.priceAdjustmentPercent))
           : 0,
       suggestion: typeof parsed.suggestion === 'string' ? parsed.suggestion.slice(0, 150) : '',
     }
   } catch (err) {
     console.error('Gemini analysis error:', err)
-    return { factors: [], confidenceAdjustment: 0, suggestion: '' }
+    return { factors: [], confidenceAdjustment: 0, priceAdjustmentPercent: 0, suggestion: '' }
   }
 }
 

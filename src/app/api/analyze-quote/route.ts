@@ -11,14 +11,14 @@ export async function POST(request: Request) {
 
     if (!category || !VALID_CATEGORIES.includes(category)) {
       return NextResponse.json(
-        { factors: [], confidenceAdjustment: 0, suggestion: '' },
+        { factors: [], confidenceAdjustment: 0, priceAdjustmentPercent: 0, suggestion: '' },
         { status: 200 }
       )
     }
 
     if (!notes || typeof notes !== 'string' || notes.trim().length < 3) {
       return NextResponse.json(
-        { factors: [], confidenceAdjustment: 0, suggestion: '' },
+        { factors: [], confidenceAdjustment: 0, priceAdjustmentPercent: 0, suggestion: '' },
         { status: 200 }
       )
     }
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Analyze quote error:', error)
     return NextResponse.json(
-      { factors: [], confidenceAdjustment: 0, suggestion: '' },
+      { factors: [], confidenceAdjustment: 0, priceAdjustmentPercent: 0, suggestion: '' },
       { status: 200 }
     )
   }

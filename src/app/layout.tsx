@@ -51,7 +51,44 @@ export const metadata: Metadata = {
     'house cleaning Hudson County',
     'car wash near me NJ',
     'home cleaning near me NJ',
+    // Additional location-specific keywords
+    'auto detailing Paramus',
+    'car wash Edgewater NJ',
+    'home cleaning Teaneck',
+    'mobile car wash North Bergen',
+    'house cleaning Bayonne',
+    'car detailing Clifton NJ',
+    'home cleaning Paterson NJ',
+    'auto detailing Passaic',
+    'mobile detailing Union City NJ',
+    'car wash Weehawken',
+    'home cleaning West New York NJ',
+    'office cleaning Jersey City',
+    'commercial cleaning NYC',
+    'auto detailing New York',
+    'mobile car wash NYC',
+    'car detailing Manhattan',
+    'car detailing Brooklyn',
+    'car detailing Queens',
+    'home cleaning Manhattan',
+    'house cleaning Brooklyn',
+    'auto detailing near me',
+    'best car detailing NJ',
+    'affordable home cleaning NJ',
+    'professional car wash NJ',
+    'eco friendly car wash NJ',
+    'mobile auto detailing New Jersey',
+    'same day car detailing NJ',
+    'residential cleaning service NJ',
+    'janitorial service NJ',
+    'carpet cleaning NJ',
   ],
+  verification: {
+    google: '',
+    other: {
+      'msvalidate.01': '', // Add Bing Webmaster verification code here
+    },
+  },
   openGraph: {
     title: 'Yumi Forever | Auto Detailing, Home Cleaning & Office Care | NJ & NYC',
     description:
@@ -109,6 +146,29 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
+        {/* Organization schema for logo in search results */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'Yumi Forever',
+              url: 'https://yumiforever.com',
+              logo: 'https://yumiforever.com/logo-horizontal.png',
+              image: 'https://yumiforever.com/logo-horizontal.png',
+              description:
+                'Premium auto detailing, home cleaning, office cleaning, and fleet washing services across NJ & NYC.',
+              telephone: '(555) 123-4567',
+              email: 'support@yumiforever.com',
+              areaServed: [
+                { '@type': 'State', name: 'New Jersey' },
+                { '@type': 'City', name: 'New York City' },
+              ],
+              sameAs: [],
+            }),
+          }}
+        />
         {children}
         <Script
           src="https://web.squarecdn.com/v1/square.js"

@@ -417,7 +417,7 @@ function HomeBookingPageInner() {
   ])
 
   // ----- AI analysis state -----
-  const [aiAdjustment, setAiAdjustment] = useState(0)
+  const [aiPriceAdjustment, setAiPriceAdjustment] = useState(0)
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [aiFactors, setAiFactors] = useState<string[]>([])
   const [aiLoading, setAiLoading] = useState(false)
@@ -426,7 +426,7 @@ function HomeBookingPageInner() {
   // Debounced Gemini analysis when layout notes change
   useEffect(() => {
     if (!booking.layoutNotes || booking.layoutNotes.trim().length < 10) {
-      setAiAdjustment(0)
+      setAiPriceAdjustment(0)
       setAiSuggestion('')
       setAiFactors([])
       return
@@ -451,7 +451,7 @@ function HomeBookingPageInner() {
           }),
         })
         const data = await res.json()
-        setAiAdjustment(data.confidenceAdjustment || 0)
+        setAiPriceAdjustment(data.priceAdjustmentPercent || 0)
         setAiSuggestion(data.suggestion || '')
         setAiFactors(data.factors || [])
       } catch {
@@ -476,10 +476,8 @@ function HomeBookingPageInner() {
       hasBuildingType: !!booking.buildingType,
       hasDirtiness: !!booking.dirtiness,
       hasLastCleaned: !!booking.lastCleaned,
-      hasSpecialNotes: !!booking.layoutNotes.trim(),
-      aiAdjustment,
     })
-  }, [booking.floorplan, booking.sqft, booking.bedrooms, booking.bathrooms, booking.carpetType, booking.buildingType, booking.dirtiness, booking.lastCleaned, booking.layoutNotes, aiAdjustment])
+  }, [booking.floorplan, booking.sqft, booking.bedrooms, booking.bathrooms, booking.carpetType, booking.buildingType, booking.dirtiness, booking.lastCleaned])
 
   // ----- Add-on pricing -----
   const addonTotal = useMemo(() => {
@@ -505,7 +503,10 @@ function HomeBookingPageInner() {
   }, [booking.zipCode])
 
   const baseSubtotal = priceResult?.subtotal ?? 0
-  const subtotal = baseSubtotal + addonTotal + travelFee.fee
+  const aiAdjustedBase = aiPriceAdjustment !== 0
+    ? Math.round(baseSubtotal * (1 + aiPriceAdjustment / 100))
+    : baseSubtotal
+  const subtotal = aiAdjustedBase + addonTotal + travelFee.fee
   const tax = Math.round(subtotal * TAX_RATE)
   const total = subtotal + tax
   const depositAmount = selectedService?.depositAmount ?? 0
@@ -1103,6 +1104,15 @@ function HomeBookingPageInner() {
                   <span>{selectedService?.name} (base)</span>
                   <span>{formatCurrency(baseSubtotal)}</span>
                 </div>
+                {aiPriceAdjustment !== 0 && (
+                  <div className={cn(
+                    "flex items-center justify-between text-sm mt-1",
+                    aiPriceAdjustment > 0 ? "text-amber-700" : "text-green-600"
+                  )}>
+                    <span>AI adjustment ({aiPriceAdjustment > 0 ? '+' : ''}{aiPriceAdjustment}%)</span>
+                    <span>{aiPriceAdjustment > 0 ? '+' : '-'}{formatCurrency(Math.abs(aiAdjustedBase - baseSubtotal))}</span>
+                  </div>
+                )}
                 {booking.addons.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {booking.addons.map((id) => {
@@ -1560,6 +1570,15 @@ function HomeBookingPageInner() {
                         Condition multiplier ({priceResult.multiplier.toFixed(2)}x)
                       </span>
                       <span className="text-gray-400">applied</span>
+                    </div>
+                  )}
+                  {aiPriceAdjustment !== 0 && (
+                    <div className={cn(
+                      "flex items-center justify-between text-sm",
+                      aiPriceAdjustment > 0 ? "text-amber-700" : "text-green-600"
+                    )}>
+                      <span>AI adjustment ({aiPriceAdjustment > 0 ? '+' : ''}{aiPriceAdjustment}%)</span>
+                      <span>{aiPriceAdjustment > 0 ? '+' : '-'}{formatCurrency(Math.abs(aiAdjustedBase - baseSubtotal))}</span>
                     </div>
                   )}
                   {booking.addons.length > 0 && (

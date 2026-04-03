@@ -347,26 +347,29 @@ function BookingPageInner() {
     }, 0)
   }, [booking.addons, getAddonPrice, getAddonQuantity])
 
-  const travelFee = useMemo(() => {
-    if (!booking.zipCode || booking.zipCode.length < 5) return { zone: 'local' as const, label: '', fee: 0, breakdown: '' }
-    return calculateTravelFee(booking.zipCode.trim())
-  }, [booking.zipCode])
-
-  const subtotal = servicePrice + addonTotal + travelFee.fee
-  const tax = Math.round(subtotal * TAX_RATE)
-  const total = subtotal + tax
-
   // ----- AI analysis state -----
-  const [aiAdjustment, setAiAdjustment] = useState(0)
+  const [aiPriceAdjustment, setAiPriceAdjustment] = useState(0)
   const [aiSuggestion, setAiSuggestion] = useState('')
   const [aiFactors, setAiFactors] = useState<string[]>([])
   const [aiLoading, setAiLoading] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const travelFee = useMemo(() => {
+    if (!booking.zipCode || booking.zipCode.length < 5) return { zone: 'local' as const, label: '', fee: 0, breakdown: '' }
+    return calculateTravelFee(booking.zipCode.trim())
+  }, [booking.zipCode])
+
+  const aiAdjustedServicePrice = aiPriceAdjustment !== 0
+    ? Math.round(servicePrice * (1 + aiPriceAdjustment / 100))
+    : servicePrice
+  const subtotal = aiAdjustedServicePrice + addonTotal + travelFee.fee
+  const tax = Math.round(subtotal * TAX_RATE)
+  const total = subtotal + tax
+
   // Debounced Gemini analysis when special notes change
   useEffect(() => {
     if (!booking.specialNotes || booking.specialNotes.trim().length < 10) {
-      setAiAdjustment(0)
+      setAiPriceAdjustment(0)
       setAiSuggestion('')
       setAiFactors([])
       return
@@ -389,7 +392,7 @@ function BookingPageInner() {
           }),
         })
         const data = await res.json()
-        setAiAdjustment(data.confidenceAdjustment || 0)
+        setAiPriceAdjustment(data.priceAdjustmentPercent || 0)
         setAiSuggestion(data.suggestion || '')
         setAiFactors(data.factors || [])
       } catch {
@@ -411,10 +414,8 @@ function BookingPageInner() {
       hasServiceType: !!booking.service,
       hasCondition: true, // auto form doesn't have separate condition step — always true
       hasAddons: true, // add-ons step is always visited
-      hasSpecialNotes: !!booking.specialNotes.trim(),
-      aiAdjustment,
     })
-  }, [booking.vehicleType, booking.service, booking.specialNotes, aiAdjustment])
+  }, [booking.vehicleType, booking.service])
 
   // ----- Validation helpers -----
 
@@ -963,6 +964,15 @@ function BookingPageInner() {
                 <span>{booking.service?.name} ({VEHICLE_TYPES.find((v) => v.key === booking.vehicleType)?.label})</span>
                 <span>{formatCurrency(servicePrice)}</span>
               </div>
+              {aiPriceAdjustment !== 0 && (
+                <div className={cn(
+                  "flex items-center justify-between text-sm mt-1",
+                  aiPriceAdjustment > 0 ? "text-amber-700" : "text-green-600"
+                )}>
+                  <span>AI adjustment ({aiPriceAdjustment > 0 ? '+' : ''}{aiPriceAdjustment}%)</span>
+                  <span>{aiPriceAdjustment > 0 ? '+' : '-'}{formatCurrency(Math.abs(aiAdjustedServicePrice - servicePrice))}</span>
+                </div>
+              )}
               {booking.addons.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {booking.addons.map((id) => {
@@ -1314,6 +1324,15 @@ function BookingPageInner() {
                     </span>
                     <span className="text-gray-900">{formatCurrency(servicePrice)}</span>
                   </div>
+                  {aiPriceAdjustment !== 0 && (
+                    <div className={cn(
+                      "flex items-center justify-between text-sm",
+                      aiPriceAdjustment > 0 ? "text-amber-700" : "text-green-600"
+                    )}>
+                      <span>AI adjustment ({aiPriceAdjustment > 0 ? '+' : ''}{aiPriceAdjustment}%)</span>
+                      <span>{aiPriceAdjustment > 0 ? '+' : '-'}{formatCurrency(Math.abs(aiAdjustedServicePrice - servicePrice))}</span>
+                    </div>
+                  )}
                   {booking.addons.map((id) => {
                     const addon = ADDONS.find((a) => a.id === id)
                     if (!addon) return null

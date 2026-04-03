@@ -463,8 +463,6 @@ export function getHomePriceConfidence(input: {
   hasBuildingType: boolean
   hasDirtiness: boolean
   hasLastCleaned: boolean
-  hasSpecialNotes?: boolean
-  aiAdjustment?: number
 }): PriceConfidence {
   const missing: { field: string; impact: string }[] = []
   let confidence = 100
@@ -494,11 +492,6 @@ export function getHomePriceConfidence(input: {
     confidence -= 15
   }
 
-  // AI can only LOWER confidence (reveals complexity), never raise it
-  if (input.aiAdjustment && input.aiAdjustment < 0) {
-    confidence += input.aiAdjustment
-  }
-
   confidence = Math.max(0, Math.min(95, confidence))
 
   let message: string
@@ -526,8 +519,6 @@ export function getAutoPriceConfidence(input: {
   hasServiceType: boolean
   hasCondition: boolean
   hasAddons: boolean
-  hasSpecialNotes?: boolean
-  aiAdjustment?: number
 }): PriceConfidence {
   const missing: { field: string; impact: string }[] = []
   let confidence = 100
@@ -547,11 +538,6 @@ export function getAutoPriceConfidence(input: {
   if (!input.hasAddons) {
     missing.push({ field: 'Add-ons', impact: 'Additional services may add $60-$180' })
     confidence -= 5
-  }
-
-  // AI can only LOWER confidence (reveals complexity), never raise it
-  if (input.aiAdjustment && input.aiAdjustment < 0) {
-    confidence += input.aiAdjustment
   }
 
   confidence = Math.max(0, Math.min(99, confidence))
@@ -583,8 +569,6 @@ export function getOfficePriceConfidence(input: {
   hasServiceLevel: boolean
   hasFrequency: boolean
   hasContract: boolean
-  hasSpecialNotes?: boolean
-  aiAdjustment?: number
 }): PriceConfidence {
   const missing: { field: string; impact: string }[] = []
   let confidence = 100
@@ -612,11 +596,6 @@ export function getOfficePriceConfidence(input: {
   if (!input.hasContract) {
     missing.push({ field: 'Contract length', impact: 'Contract discounts up to 15%' })
     confidence -= 5
-  }
-
-  // AI can only LOWER confidence (reveals complexity), never raise it
-  if (input.aiAdjustment && input.aiAdjustment < 0) {
-    confidence += input.aiAdjustment
   }
 
   confidence = Math.max(0, Math.min(95, confidence))
