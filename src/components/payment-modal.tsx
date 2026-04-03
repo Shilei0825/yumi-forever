@@ -195,7 +195,8 @@ export function PaymentModal({
     } catch (err: unknown) {
       console.error('Square card init error:', err)
       const msg = err instanceof Error ? err.message : String(err)
-      setError(`Payment form error: ${msg}`)
+      const appId = process.env.NEXT_PUBLIC_SQUARE_APP_ID || ''
+      setError(`${msg} [appId=${appId}, len=${appId.length}]`)
       setInitFailed(true)
       initRef.current = false
     }
