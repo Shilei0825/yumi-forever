@@ -156,9 +156,10 @@ export function PaymentModal({
       const locationId = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || ''
 
       if (!appId || !locationId) {
-        throw new Error('Payment configuration missing')
+        throw new Error(`Payment configuration missing — appId: ${appId ? 'set' : 'EMPTY'}, locationId: ${locationId ? 'set' : 'EMPTY'}`)
       }
 
+      console.log('Square init:', { appId: appId.substring(0, 10) + '...', locationId, host: window.location.hostname })
       const payments = await window.Square.payments(appId, locationId)
       const card = await payments.card({
         style: {
@@ -191,9 +192,10 @@ export function PaymentModal({
       await card.attach('#sq-card-container')
       cardRef.current = card
       setCardReady(true)
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Square card init error:', err)
-      setError('Failed to initialize payment form. Please try again.')
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(`Payment form error: ${msg}`)
       setInitFailed(true)
       initRef.current = false
     }
