@@ -42,6 +42,7 @@ import {
 } from '@/lib/constants'
 import { PriceAppealDialog } from '@/components/price-appeal-dialog'
 import { ConfidenceBar } from '@/components/ui/confidence-bar'
+import { PaymentModal } from '@/components/payment-modal'
 import { getOfficePriceConfidence } from '@/lib/pricing-engine'
 
 // ---------------------------------------------------------------------------
@@ -273,6 +274,9 @@ function OfficeBookingPageInner() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showPayment, setShowPayment] = useState(false)
+  const [pendingBookingId, setPendingBookingId] = useState('')
+  const [pendingAmount, setPendingAmount] = useState(0)
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -573,10 +577,12 @@ function OfficeBookingPageInner() {
       }
 
       const data = await res.json()
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
+      if (data.booking_id) {
+        setPendingBookingId(data.booking_id)
+        setPendingAmount(quote?.monthlyTotal ?? 0)
+        setShowPayment(true)
       } else {
-        router.push(`/portal/bookings/${data.booking_id || data.booking_number || ''}?success=true`)
+        router.push(`/portal/bookings/${data.booking_number || ''}?success=true`)
       }
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -1547,6 +1553,19 @@ function OfficeBookingPageInner() {
           </div>
         )}
       </div>
+
+      <PaymentModal
+        open={showPayment}
+        onClose={() => setShowPayment(false)}
+        onSuccess={() => {
+          router.push(`/portal/bookings/${pendingBookingId}?success=true`)
+        }}
+        bookingId={pendingBookingId}
+        amount={pendingAmount}
+        paymentType="full"
+        customerEmail={booking.contactEmail}
+        serviceName={selectedPlan?.name || 'Office Cleaning'}
+      />
     </div>
   )
 }

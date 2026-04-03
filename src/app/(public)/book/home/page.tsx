@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { PaymentModal } from '@/components/payment-modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConfidenceBar } from '@/components/ui/confidence-bar'
@@ -287,6 +288,9 @@ function HomeBookingPageInner() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showPayment, setShowPayment] = useState(false)
+  const [pendingBookingId, setPendingBookingId] = useState('')
+  const [pendingAmount, setPendingAmount] = useState(0)
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -621,8 +625,10 @@ function HomeBookingPageInner() {
       }
 
       const data = await res.json()
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl
+      if (data.deposit_amount > 0) {
+        setPendingBookingId(data.booking_id)
+        setPendingAmount(data.deposit_amount)
+        setShowPayment(true)
       } else {
         router.push(`/booking-confirmation?booking_id=${data.booking_id}`)
       }
@@ -1705,6 +1711,17 @@ function HomeBookingPageInner() {
           </div>
         )}
       </div>
+
+      {/* Payment Slide-in */}
+      <PaymentModal
+        open={showPayment}
+        onClose={() => setShowPayment(false)}
+        onSuccess={() => router.push(`/booking-confirmation?booking_id=${pendingBookingId}&payment=success`)}
+        bookingId={pendingBookingId}
+        amount={pendingAmount}
+        paymentType="deposit"
+        serviceName={selectedService?.name || 'Home Cleaning'}
+      />
     </div>
   )
 }

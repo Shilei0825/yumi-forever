@@ -553,10 +553,10 @@ export function getAutoPriceConfidence(input: {
     confidence += input.aiAdjustment
   }
 
-  confidence = Math.max(0, Math.min(95, confidence))
+  confidence = Math.max(0, Math.min(99, confidence))
 
   let message: string
-  if (confidence >= 85) {
+  if (confidence >= 90) {
     message = 'High accuracy — this quote is very close to your final price.'
   } else if (confidence >= 75) {
     message = 'Good estimate — final price may vary slightly based on vehicle condition.'
