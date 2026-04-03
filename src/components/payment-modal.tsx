@@ -112,22 +112,30 @@ export function PaymentModal({
   const initializeCard = useCallback(async () => {
     if (!open || initRef.current) return
 
+    // Wait for Square SDK — also inject script if not present
     const waitForSquare = () =>
       new Promise<void>((resolve) => {
         if (window.Square) {
           resolve()
           return
         }
+        // Ensure the script tag exists
+        if (!document.querySelector('script[src*="squarecdn"]')) {
+          const script = document.createElement('script')
+          script.src = 'https://web.squarecdn.com/v1/square.js'
+          script.async = true
+          document.head.appendChild(script)
+        }
         const interval = setInterval(() => {
           if (window.Square) {
             clearInterval(interval)
             resolve()
           }
-        }, 100)
+        }, 200)
         setTimeout(() => {
           clearInterval(interval)
           resolve()
-        }, 10000)
+        }, 15000)
       })
 
     await waitForSquare()
@@ -161,6 +169,25 @@ export function PaymentModal({
           },
         },
       })
+
+      // Wait for container to be in DOM
+      const waitForContainer = () =>
+        new Promise<void>((resolve) => {
+          if (document.getElementById('sq-card-container')) {
+            resolve()
+            return
+          }
+          const obs = new MutationObserver(() => {
+            if (document.getElementById('sq-card-container')) {
+              obs.disconnect()
+              resolve()
+            }
+          })
+          obs.observe(document.body, { childList: true, subtree: true })
+          setTimeout(() => { obs.disconnect(); resolve() }, 3000)
+        })
+
+      await waitForContainer()
 
       await card.attach('#sq-card-container')
       cardRef.current = card

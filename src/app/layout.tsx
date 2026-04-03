@@ -172,7 +172,7 @@ export default function RootLayout({
         {children}
         <Script
           src="https://web.squarecdn.com/v1/square.js"
-          strategy="lazyOnload"
+          strategy="afterInteractive"
         />
       </body>
     </html>
