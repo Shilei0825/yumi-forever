@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { Phone, X, Car, Sparkles, Building2, Truck, ArrowRight } from "lucide-react"
+import { Phone, X, Car, Sparkles, Building2, Truck, ArrowRight, MessageCircle } from "lucide-react"
 import { BRAND } from "@/lib/constants"
 
 const SERVICE_OPTIONS = [
@@ -60,6 +60,13 @@ export function MobileCTA() {
             className="inline-flex h-12 flex-1 items-center justify-center rounded-lg bg-violet-700 text-sm font-semibold text-white transition-colors active:bg-violet-800"
           >
             Book Now
+          </button>
+          <button
+            onClick={() => document.getElementById('mobile-chat-trigger')?.click()}
+            className="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 transition-colors active:bg-gray-50"
+            aria-label="Chat with us"
+          >
+            <MessageCircle className="h-5 w-5" />
           </button>
           <a
             href={`tel:${BRAND.phone}`}

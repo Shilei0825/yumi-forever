@@ -10,6 +10,7 @@ import {
   Gift,
 } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
+import { ChatWidget } from '@/components/chat/chat-widget'
 import type { Profile } from '@/types'
 
 const navigation = [
@@ -36,6 +37,7 @@ export function PortalShell({ children, profile }: PortalShellProps) {
       userRole="customer"
     >
       {children}
+      <ChatWidget />
     </DashboardLayout>
   )
 }

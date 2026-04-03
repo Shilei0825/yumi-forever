@@ -221,8 +221,7 @@ export default function ReviewsPage() {
                 Earn credits for your reviews!
               </p>
               <p className="mt-1 text-sm text-gray-600">
-                Leave any review and get <strong>$10 off</strong> your next booking.
-                Leave a 5-star review and get <strong>$15 off</strong>!
+                Leave any review and get <strong>$10 off</strong> your next booking!
               </p>
               <p className="mt-1 text-xs text-gray-400">
                 Credits are applied automatically at checkout. Expires in 90 days.

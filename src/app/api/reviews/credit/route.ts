@@ -80,10 +80,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Calculate credit amount
-    const creditAmount = review.rating === 5
-      ? REVIEW_CREDIT_CONFIG.FIVE_STAR_CREDIT
-      : REVIEW_CREDIT_CONFIG.ANY_REVIEW_CREDIT
+    // Flat $10 credit for any approved review
+    const creditAmount = REVIEW_CREDIT_CONFIG.ANY_REVIEW_CREDIT
 
     // Calculate expiry
     const expiresAt = new Date()

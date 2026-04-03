@@ -109,11 +109,7 @@ export default function CreditsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-gray-600">
           <p>1. Complete a service and leave a review</p>
-          <p>2. Once approved, you earn a credit:</p>
-          <div className="ml-4 space-y-1">
-            <p>- Any review (1-4 stars): <strong className="text-gray-900">$10 credit</strong></p>
-            <p>- 5-star review: <strong className="text-gray-900">$15 credit</strong></p>
-          </div>
+          <p>2. Once approved, you earn a <strong className="text-gray-900">$10 credit</strong></p>
           <p>3. Credits are automatically applied to your next booking</p>
           <p className="text-xs text-gray-400">Credits expire after 90 days. Max 3 active credits at a time.</p>
         </CardContent>
