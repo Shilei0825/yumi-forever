@@ -127,12 +127,15 @@ Respond with ONLY a JSON object (no markdown, no code fences):
   "suggestion": "Brief suggestion for the customer about quote accuracy"
 }
 
-Rules for confidenceAdjustment:
-- +5 to +10 if notes confirm simple/standard setup AND historical data shows high accuracy
-- 0 if notes don't significantly affect pricing
+Rules for confidenceAdjustment — this value DIRECTLY affects the displayed quote accuracy percentage:
+- +8 to +12 if notes provide genuinely useful details that help VERIFY the estimate (e.g. describing exact condition, listing specific areas, confirming standard layout, mentioning relevant details about the space/vehicle)
+- +3 to +7 if notes contain some helpful details but are partially vague
+- 0 if notes are generic platitudes like "please clean well" or "do a good job" — these add no pricing information
 - -3 to -8 if notes suggest minor additional work or moderate complexity
-- -10 to -20 if notes suggest major additional work or complexity
+- -10 to -20 if notes suggest major additional work or unusual complexity
 - -20 to -30 if notes describe highly unusual situation that's hard to estimate
+
+The KEY question is: do the customer's notes help us VERIFY that our pricing model matches their actual situation? Specific, detailed descriptions of the space/vehicle/condition increase accuracy. Vague or irrelevant comments do not.
 
 Keep suggestion under 120 characters. Return 1-4 factors max.`
 
@@ -168,7 +171,7 @@ Keep suggestion under 120 characters. Return 1-4 factors max.`
       factors: Array.isArray(parsed.factors) ? parsed.factors.slice(0, 4) : [],
       confidenceAdjustment:
         typeof parsed.confidenceAdjustment === 'number'
-          ? Math.max(-30, Math.min(10, parsed.confidenceAdjustment))
+          ? Math.max(-30, Math.min(12, parsed.confidenceAdjustment))
           : 0,
       suggestion: typeof parsed.suggestion === 'string' ? parsed.suggestion.slice(0, 150) : '',
     }

@@ -450,7 +450,7 @@ export function estimateHomeDuration(serviceType: HomeServiceType, floorplan: Ho
 // ---------------------------------------------------------------------------
 
 export interface PriceConfidence {
-  percent: number // 0–95 (capped — predictions are never 100% accurate)
+  percent: number // 0–99 (capped — predictions are never 100% accurate)
   missing: { field: string; impact: string }[]
   message: string
 }
@@ -494,17 +494,21 @@ export function getHomePriceConfidence(input: {
     confidence -= 15
   }
 
-  // AI adjustment from Gemini analysis of special notes
-  if (input.aiAdjustment && input.aiAdjustment !== 0) {
+  // Notes-based accuracy: without detailed notes, we can't verify assumptions
+  if (!input.hasSpecialNotes) {
+    missing.push({ field: 'Additional details', impact: 'Detailed notes can improve accuracy to 99%' })
+    confidence -= 12
+  } else if (input.aiAdjustment !== undefined && input.aiAdjustment !== 0) {
+    // AI analyzed the notes — adjustment reflects their quality
     confidence += input.aiAdjustment
   }
 
-  confidence = Math.max(0, Math.min(95, confidence))
+  confidence = Math.max(0, Math.min(99, confidence))
 
   let message: string
-  if (confidence >= 85) {
+  if (confidence >= 90) {
     message = 'High accuracy — this quote is very close to your final price.'
-  } else if (confidence >= 75) {
+  } else if (confidence >= 80) {
     message = 'Good estimate — final price may vary slightly based on missing details.'
   } else if (confidence >= 65) {
     message = 'Fair estimate — providing more details will improve accuracy.'
@@ -613,16 +617,21 @@ export function getOfficePriceConfidence(input: {
     confidence -= 5
   }
 
-  if (input.aiAdjustment && input.aiAdjustment !== 0) {
+  // Notes-based accuracy: without detailed notes, we can't verify assumptions
+  if (!input.hasSpecialNotes) {
+    missing.push({ field: 'Special requirements', impact: 'Detailed notes can improve accuracy to 99%' })
+    confidence -= 12
+  } else if (input.aiAdjustment !== undefined && input.aiAdjustment !== 0) {
+    // AI analyzed the notes — adjustment reflects their quality
     confidence += input.aiAdjustment
   }
 
-  confidence = Math.max(0, Math.min(95, confidence))
+  confidence = Math.max(0, Math.min(99, confidence))
 
   let message: string
-  if (confidence >= 85) {
+  if (confidence >= 90) {
     message = 'High accuracy — this quote is very close to your final price.'
-  } else if (confidence >= 75) {
+  } else if (confidence >= 80) {
     message = 'Good estimate — final price may vary slightly based on space details.'
   } else if (confidence >= 65) {
     message = 'Fair estimate — providing more details will improve accuracy.'

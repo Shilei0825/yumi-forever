@@ -7,15 +7,15 @@
 // Base pay rules:
 //   ≥3 jobs/day  → full base
 //   1–2 jobs/day → 50% base
-//   0 jobs/day   → $0 (no job = no pay)
+//   0 jobs (showed up, cancellations) → show-up guarantee ($60 lead, $50 helper)
 //
 // Commission:
 //   Lead:   25% of final_price
-//   Helper: 15% of final_price (20% if job total ≥ $300)
+//   Helper: 17% of final_price (20% if job total ≥ $300)
 //
 // Review bonus:
 //   5-star review → +$5 per job
-//   10+ five-star reviews in a week → +$50 weekly bonus
+//   5+ five-star reviews in a week → +$50 weekly bonus
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -84,15 +84,21 @@ export const CREW_PAY_CONFIG: Record<CrewRole, CrewPayConfig> = {
   helper: {
     role: 'helper',
     baseDailyPay: 8000,     // $80/day
-    commissionRate: 0.15,    // 15% (upgrades to 20% for jobs ≥$300)
+    commissionRate: 0.17,    // 17% (upgrades to 20% for jobs ≥$300)
   },
 }
 
 const HELPER_HIGH_COMMISSION_THRESHOLD = 30000 // $300 in cents
 const HELPER_HIGH_COMMISSION_RATE = 0.20       // 20%
 
+// Show-up guarantee — crew member showed up but all jobs cancelled
+const SHOW_UP_GUARANTEE: Record<CrewRole, number> = {
+  lead: 6000,   // $60
+  helper: 5000, // $50
+}
+
 const FIVE_STAR_BONUS_PER_JOB = 500            // $5
-const WEEKLY_REVIEW_BONUS_THRESHOLD = 10       // 10+ five-star reviews
+const WEEKLY_REVIEW_BONUS_THRESHOLD = 5        // 5+ five-star reviews in a week
 const WEEKLY_REVIEW_BONUS = 5000               // $50
 
 // ---------------------------------------------------------------------------
@@ -112,9 +118,11 @@ export function calculateDailyPay(
   let baseMultiplier = 0
   if (jobCount >= 3) baseMultiplier = 1.0
   else if (jobCount >= 1) baseMultiplier = 0.5
-  // 0 jobs = 0 base
+  // 0 jobs = show-up guarantee (crew showed up but jobs cancelled)
 
-  const adjustedBase = Math.round(config.baseDailyPay * baseMultiplier)
+  const adjustedBase = jobCount === 0
+    ? SHOW_UP_GUARANTEE[role]
+    : Math.round(config.baseDailyPay * baseMultiplier)
 
   // Commission per job
   let totalCommission = 0
