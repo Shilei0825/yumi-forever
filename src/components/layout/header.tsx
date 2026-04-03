@@ -5,7 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { createPortal } from "react-dom"
-import { Menu, X, Phone, User } from "lucide-react"
+import { Menu, X, Phone, User, ChevronDown, Building2, Truck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/client"
@@ -13,10 +13,14 @@ import { createClient } from "@/lib/supabase/client"
 const NAV_LINKS = [
   { label: "Services", href: "/services" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Commercial", href: "/services/office-commercial" },
   { label: "About", href: "/about" },
   { label: "Careers", href: "/careers" },
   { label: "Contact", href: "/contact" },
+]
+
+const COMMERCIAL_LINKS = [
+  { label: "Office & Commercial", href: "/services/office-commercial", icon: Building2, description: "Professional office cleaning" },
+  { label: "Truck & Fleet", href: "/services/truck-fleet", icon: Truck, description: "Fleet washing & detailing" },
 ]
 
 export function Header() {
@@ -79,15 +83,62 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-1 md:flex">
-            {NAV_LINKS.map((link) => (
+            {NAV_LINKS.slice(0, 2).map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
                   "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900",
-                  pathname === link.href
+                  pathname === link.href ? "text-gray-900" : "text-gray-600"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+
+            {/* Commercial Dropdown */}
+            <div className="group relative">
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900",
+                  pathname.startsWith("/services/office-commercial") || pathname.startsWith("/services/truck-fleet")
                     ? "text-gray-900"
                     : "text-gray-600"
+                )}
+              >
+                Commercial
+                <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />
+              </button>
+              <div className="invisible absolute left-0 top-full z-50 w-56 pt-1 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
+                <div className="rounded-lg border border-gray-200 bg-white py-1.5">
+                  {COMMERCIAL_LINKS.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-gray-50",
+                        pathname === item.href ? "text-gray-900 font-medium" : "text-gray-600"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0 text-violet-600" />
+                      <div>
+                        <div className="font-medium text-gray-900">{item.label}</div>
+                        <div className="text-xs text-gray-500">{item.description}</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {NAV_LINKS.slice(2).map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900",
+                  pathname === link.href ? "text-gray-900" : "text-gray-600"
                 )}
               >
                 {link.label}
@@ -177,15 +228,44 @@ export function Header() {
           <div className="flex h-[calc(100vh-5rem)] flex-col overflow-y-auto bg-white">
             <nav className="flex-1 px-6 py-8">
               <div className="space-y-1">
-                {NAV_LINKS.map((link) => (
+                {NAV_LINKS.slice(0, 2).map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     className={cn(
                       "block rounded-xl px-4 py-3.5 text-lg font-medium transition-colors active:bg-gray-100",
-                      pathname === link.href
-                        ? "text-primary"
-                        : "text-gray-900"
+                      pathname === link.href ? "text-primary" : "text-gray-900"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+
+                {/* Commercial section */}
+                <div className="px-4 py-3.5 text-lg font-medium text-gray-900">Commercial</div>
+                <div className="space-y-0.5 pl-4">
+                  {COMMERCIAL_LINKS.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors active:bg-gray-100",
+                        pathname === item.href ? "text-primary" : "text-gray-600"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 text-violet-600" />
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+
+                {NAV_LINKS.slice(2).map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "block rounded-xl px-4 py-3.5 text-lg font-medium transition-colors active:bg-gray-100",
+                      pathname === link.href ? "text-primary" : "text-gray-900"
                     )}
                   >
                     {link.label}

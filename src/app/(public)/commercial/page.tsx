@@ -43,6 +43,7 @@ const SEGMENTS = [
     description:
       "Resident car wash programs, common area cleaning, move-out cleans, and amenity maintenance for property managers.",
     icon: Home,
+    href: "/contact",
     features: [
       "Resident detailing programs",
       "Common area cleaning",
@@ -55,6 +56,7 @@ const SEGMENTS = [
     description:
       "Lot wash, delivery prep, pre-owned reconditioning, and showroom detailing to keep your inventory looking its best.",
     icon: Car,
+    href: "/contact",
     features: [
       "Daily lot wash programs",
       "Delivery detail prep",
@@ -67,6 +69,7 @@ const SEGMENTS = [
     description:
       "Scheduled washing and detailing for commercial fleets. Keep vehicles clean, branded, and road-ready.",
     icon: Truck,
+    href: "/services/truck-fleet",
     features: [
       "On-site fleet washing",
       "Scheduled recurring service",
@@ -79,6 +82,7 @@ const SEGMENTS = [
     description:
       "Office buildings, retail centers, medical facilities, and more. Professional cleaning tailored to your property.",
     icon: Building2,
+    href: "/services/office-commercial",
     features: [
       "Office and lobby cleaning",
       "Retail space maintenance",
@@ -184,6 +188,12 @@ export default function CommercialPage() {
                       </li>
                     ))}
                   </ul>
+                  <Button variant="outline" className="mt-6 w-full" asChild>
+                    <Link href={segment.href}>
+                      Learn More
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
                 </CardContent>
               </Card>
             ))}
