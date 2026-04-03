@@ -207,6 +207,17 @@ export function calculateWeeklyPay(
 }
 
 // ---------------------------------------------------------------------------
+// Review Credit Config (customer rewards)
+// ---------------------------------------------------------------------------
+
+export const REVIEW_CREDIT_CONFIG = {
+  ANY_REVIEW_CREDIT: 1000,       // $10 in cents
+  FIVE_STAR_CREDIT: 1500,        // $15 in cents
+  CREDIT_EXPIRY_DAYS: 90,        // 90 days
+  MAX_ACTIVE_CREDITS: 3,         // max active credits per customer
+}
+
+// ---------------------------------------------------------------------------
 // Margin / Anti-Loss Helpers
 // ---------------------------------------------------------------------------
 

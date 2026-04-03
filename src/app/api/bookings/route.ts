@@ -66,6 +66,9 @@ export async function POST(request: Request) {
       state,
       zip_code,
       pricing_breakdown,
+      // Review credit
+      review_credit_id,
+      review_credit_amount,
     } = body
 
     // --- Server-side validation ---
@@ -148,6 +151,28 @@ export async function POST(request: Request) {
       }) : null
     )
 
+    // Apply review credit if provided
+    let creditApplied = 0
+    let validCreditId: string | null = null
+
+    if (review_credit_id && review_credit_amount && user?.id) {
+      const { data: credit } = await supabaseAdmin
+        .from('review_credits')
+        .select('id, profile_id, remaining, status, expires_at')
+        .eq('id', review_credit_id)
+        .eq('profile_id', user.id)
+        .eq('status', 'active')
+        .single()
+
+      if (credit && credit.remaining > 0 && new Date(credit.expires_at) > new Date()) {
+        creditApplied = Math.min(credit.remaining, review_credit_amount, total)
+        validCreditId = credit.id
+      }
+    }
+
+    const finalTotal = Math.max(0, total - creditApplied)
+    const finalDepositAmount = creditApplied >= deposit_amount ? 0 : deposit_amount - creditApplied
+
     // Insert booking (use admin client to bypass RLS for guest bookings)
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
@@ -161,9 +186,11 @@ export async function POST(request: Request) {
         estimated_duration,
         subtotal,
         tax,
-        total,
+        total: finalTotal,
         estimated_price: estimated_price || subtotal,
-        deposit_amount,
+        deposit_amount: finalDepositAmount,
+        review_credit_applied: creditApplied,
+        review_credit_id: validCreditId,
         customer_name,
         customer_email,
         customer_phone: customer_phone ? normalizePhone(customer_phone) : null,
@@ -180,7 +207,7 @@ export async function POST(request: Request) {
         vehicle_class: vehicle_class || null,
         pricing_breakdown: pricing_breakdown || null,
         deposit_paid: 0,
-        remaining_balance: total,
+        remaining_balance: finalTotal,
         payment_status: 'unpaid',
         recurring_mode: recurring_mode || null,
         is_recurring: !!recurring_mode,
@@ -274,7 +301,29 @@ export async function POST(request: Request) {
     // Create Square checkout link if deposit is required
     let checkoutUrl: string | null = null
 
-    if (deposit_amount > 0) {
+    // Mark credit as used after successful booking creation
+    if (validCreditId && creditApplied > 0) {
+      const { data: credit } = await supabaseAdmin
+        .from('review_credits')
+        .select('remaining')
+        .eq('id', validCreditId)
+        .single()
+
+      if (credit) {
+        const newRemaining = credit.remaining - creditApplied
+        await supabaseAdmin
+          .from('review_credits')
+          .update({
+            remaining: newRemaining,
+            status: newRemaining <= 0 ? 'used' : 'active',
+            used_on_booking_id: booking.id,
+            used_at: new Date().toISOString(),
+          })
+          .eq('id', validCreditId)
+      }
+    }
+
+    if (finalDepositAmount > 0) {
       const squareClient = getSquareClient()
       const origin = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || ''
 
@@ -298,7 +347,7 @@ export async function POST(request: Request) {
               name: `Yumi Forever - ${serviceName}`,
               quantity: '1',
               basePriceMoney: {
-                amount: BigInt(deposit_amount),
+                amount: BigInt(finalDepositAmount),
                 currency: 'USD',
               },
             },
@@ -332,7 +381,7 @@ export async function POST(request: Request) {
       await supabaseAdmin.from('payments').insert({
         booking_id: booking.id,
         profile_id: user?.id || null,
-        amount: deposit_amount,
+        amount: finalDepositAmount,
         status: 'unpaid',
         payment_type: 'deposit',
         square_order_id: orderId || null,
@@ -343,8 +392,9 @@ export async function POST(request: Request) {
       {
         booking_id: booking.id,
         booking_number: booking.booking_number,
-        total,
-        deposit_amount,
+        total: finalTotal,
+        deposit_amount: finalDepositAmount,
+        credit_applied: creditApplied,
         checkoutUrl,
       },
       { status: 201 }

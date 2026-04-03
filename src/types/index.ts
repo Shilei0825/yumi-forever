@@ -257,6 +257,21 @@ export interface CommercialAccount {
   created_at: string
 }
 
+export type ReviewCreditStatus = 'active' | 'used' | 'expired'
+
+export interface ReviewCredit {
+  id: string
+  profile_id: string
+  review_id: string
+  amount: number
+  remaining: number
+  status: ReviewCreditStatus
+  used_on_booking_id: string | null
+  expires_at: string
+  created_at: string
+  used_at: string | null
+}
+
 export interface QuoteRequest {
   id: string
   name: string

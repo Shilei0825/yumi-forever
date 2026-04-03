@@ -186,12 +186,12 @@ export default function CrewPayPage() {
                         </div>
                         <div className="mt-1 flex flex-wrap gap-1.5">
                           {entry.bonus_amount > 0 && (
-                            <span className="text-xs text-green-600">
-                              +{formatCurrency(entry.bonus_amount)} bonus
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                              +{formatCurrency(entry.bonus_amount)} review bonus
                             </span>
                           )}
                           {entry.tip_amount > 0 && (
-                            <span className="text-xs text-blue-600">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                               +{formatCurrency(entry.tip_amount)} tip
                             </span>
                           )}

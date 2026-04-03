@@ -1,16 +1,12 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils'
-import { CREW_PAY_CONFIG } from '@/lib/payroll'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { formatCurrency, formatDate, getStatusLabel } from '@/lib/utils'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { DollarSign, CheckCircle2, Users } from 'lucide-react'
-
-export const metadata: Metadata = {
-  title: 'Payroll | Yumi Forever Admin',
-}
+import { DollarSign, CheckCircle2, Users, Loader2, Calendar } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface PayrollRecord {
   id: string
@@ -49,50 +45,110 @@ function getPayrollStatusColor(status: string): string {
   return colors[status] || 'bg-gray-100 text-gray-800'
 }
 
-export default async function AdminPayrollPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ status?: string }>
-}) {
-  const { status: statusFilter } = await searchParams
-  const supabase = await createClient()
+function getLastMonday(): string {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) - 7
+  d.setDate(diff)
+  return d.toISOString().split('T')[0]
+}
 
-  let query = supabase
-    .from('crew_payroll')
-    .select('*, profiles:crew_member_id(full_name)')
-    .order('period_start', { ascending: false })
+function getLastSunday(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - d.getDay())
+  return d.toISOString().split('T')[0]
+}
 
-  if (statusFilter && ['pending', 'approved', 'paid'].includes(statusFilter)) {
-    query = query.eq('status', statusFilter)
-  }
+export default function AdminPayrollPage() {
+  const supabase = createClient()
+  const [records, setRecords] = useState<PayrollRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [weekStart, setWeekStart] = useState(getLastMonday())
+  const [weekEnd, setWeekEnd] = useState(getLastSunday())
 
-  const { data: payrollRecords } = await query
+  const fetchRecords = useCallback(async () => {
+    setLoading(true)
 
-  const records = (payrollRecords || []) as PayrollRecord[]
+    let query = supabase
+      .from('crew_payroll')
+      .select('*, profiles:crew_member_id(full_name)')
+      .order('period_start', { ascending: false })
 
-  const allRecordsQuery = await supabase
-    .from('crew_payroll')
-    .select('crew_member_id, total_pay, status')
+    if (statusFilter && ['pending', 'approved', 'paid'].includes(statusFilter)) {
+      query = query.eq('status', statusFilter)
+    }
 
-  const allRecords = allRecordsQuery.data || []
+    const { data } = await query
+    setRecords((data || []) as PayrollRecord[])
+    setLoading(false)
+  }, [supabase, statusFilter])
 
-  const totalPending = allRecords
+  useEffect(() => {
+    fetchRecords()
+  }, [fetchRecords])
+
+  const totalPending = records
     .filter((r) => r.status === 'pending')
     .reduce((sum, r) => sum + r.total_pay, 0)
 
-  const totalPaid = allRecords
+  const totalPaid = records
     .filter((r) => r.status === 'paid')
     .reduce((sum, r) => sum + r.total_pay, 0)
 
-  const activeCrewIds = new Set(allRecords.map((r) => r.crew_member_id))
-  const activeCrewCount = activeCrewIds.size
+  const activeCrewIds = new Set(records.map((r) => r.crew_member_id))
+
+  async function handleGenerate() {
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/admin/payroll/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ week_start: weekStart, week_end: weekEnd }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        fetchRecords()
+        alert(data.message || 'Payroll generated')
+      } else {
+        alert(data.error || 'Failed to generate')
+      }
+    } catch {
+      alert('Error generating payroll')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleStatusChange(id: string, newStatus: 'approved' | 'paid') {
+    setActionLoading(id)
+    try {
+      const res = await fetch(`/api/admin/payroll/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (res.ok) {
+        fetchRecords()
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to update')
+      }
+    } catch {
+      alert('Error updating payroll')
+    } finally {
+      setActionLoading(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Payroll Dashboard</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Review and manage crew payroll records.
+          Generate, review, and manage crew payroll records.
         </p>
       </div>
 
@@ -131,39 +187,75 @@ export default async function AdminPayrollPage({
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500">Active Crew</p>
-                <p className="text-lg font-bold text-gray-900">{activeCrewCount}</p>
+                <p className="text-lg font-bold text-gray-900">{activeCrewIds.size}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Generate Payroll */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">Week Start</label>
+              <input
+                type="date"
+                value={weekStart}
+                onChange={(e) => setWeekStart(e.target.value)}
+                className="rounded-md border border-gray-200 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">Week End</label>
+              <input
+                type="date"
+                value={weekEnd}
+                onChange={(e) => setWeekEnd(e.target.value)}
+                className="rounded-md border border-gray-200 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <Button onClick={handleGenerate} disabled={generating}>
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-4 w-4" />
+                  Generate Payroll
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex gap-2">
         {STATUS_TABS.map((tab) => {
-          const isActive = (statusFilter || '') === tab.value
+          const isActive = statusFilter === tab.value
           return (
-            <Link
+            <Button
               key={tab.value}
-              href={
-                tab.value
-                  ? `/admin/payroll?status=${tab.value}`
-                  : '/admin/payroll'
-              }
+              variant={isActive ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter(tab.value)}
             >
-              <Button
-                variant={isActive ? 'default' : 'outline'}
-                size="sm"
-              >
-                {tab.label}
-              </Button>
-            </Link>
+              {tab.label}
+            </Button>
           )
         })}
       </div>
 
       <Card>
         <CardContent className="p-0">
-          {records.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
+          ) : records.length === 0 ? (
             <p className="py-12 text-center text-sm text-gray-500">
               No payroll records found.
             </p>
@@ -189,6 +281,7 @@ export default async function AdminPayrollPage({
                   {records.map((record) => {
                     const bonuses = record.review_bonus + record.weekly_bonus
                     const crewName = record.profiles?.full_name || 'Unknown'
+                    const isLoading = actionLoading === record.id
 
                     return (
                       <tr key={record.id} className="hover:bg-gray-50 transition-colors">
@@ -215,6 +308,11 @@ export default async function AdminPayrollPage({
                         </td>
                         <td className="px-4 py-3 text-right text-gray-900">
                           {formatCurrency(bonuses)}
+                          {record.five_star_count > 0 && (
+                            <span className="ml-1 text-xs text-yellow-600">
+                              ({record.five_star_count} x 5-star)
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right font-semibold text-gray-900">
                           {formatCurrency(record.total_pay)}
@@ -226,12 +324,23 @@ export default async function AdminPayrollPage({
                         </td>
                         <td className="px-4 py-3 text-right">
                           {record.status === 'pending' && (
-                            <Button size="sm" variant="outline">
-                              Approve
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isLoading}
+                              onClick={() => handleStatusChange(record.id, 'approved')}
+                            >
+                              {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Approve'}
                             </Button>
                           )}
                           {record.status === 'approved' && (
-                            <span className="text-xs text-blue-600 font-medium">Approved</span>
+                            <Button
+                              size="sm"
+                              disabled={isLoading}
+                              onClick={() => handleStatusChange(record.id, 'paid')}
+                            >
+                              {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Mark Paid'}
+                            </Button>
                           )}
                           {record.status === 'paid' && (
                             <span className="text-xs text-green-600 font-medium">Paid</span>

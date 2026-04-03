@@ -209,6 +209,29 @@ export default function ReviewsPage() {
         </p>
       </div>
 
+      {/* Review Reward Banner */}
+      <Card className="border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-100">
+              <Star className="h-5 w-5 fill-purple-500 text-purple-500" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">
+                Earn credits for your reviews!
+              </p>
+              <p className="mt-1 text-sm text-gray-600">
+                Leave any review and get <strong>$10 off</strong> your next booking.
+                Leave a 5-star review and get <strong>$15 off</strong>!
+              </p>
+              <p className="mt-1 text-xs text-gray-400">
+                Credits are applied automatically at checkout. Expires in 90 days.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Unreviewed Bookings */}
       {unreviewedBookings.length > 0 && (
         <div className="space-y-4">
@@ -260,6 +283,9 @@ export default function ReviewsPage() {
                           <CheckCircle className="mb-2 h-10 w-10 text-green-500" />
                           <p className="font-medium text-gray-900">
                             Thank you for your review!
+                          </p>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Once approved, your credit will appear in your Credits page.
                           </p>
                         </div>
                       ) : (

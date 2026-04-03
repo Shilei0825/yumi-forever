@@ -211,6 +211,8 @@ export default async function AdminReviewsPage() {
                           currentValue={review.is_approved}
                           labelOn="Approved"
                           labelOff="Pending"
+                          rating={review.rating}
+                          hasProfileId={!!review.profile_id}
                         />
                       </td>
                       <td className="py-3 text-center">
