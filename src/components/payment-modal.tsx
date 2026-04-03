@@ -190,7 +190,6 @@ export function PaymentModal({
         },
       })
 
-      await new Promise((r) => setTimeout(r, 100))
       await card.attach('#sq-card-container')
       cardRef.current = card
       setCardReady(true)
@@ -203,12 +202,7 @@ export function PaymentModal({
           total: { amount: chargeAmountDollars, label: 'Total' },
         })
         const googlePay = await payments.googlePay(paymentRequest)
-        await googlePay.attach('#sq-google-pay', {
-          buttonColor: 'black',
-          buttonType: 'long',
-          buttonSizeMode: 'fill',
-          buttonRadius: 8,
-        })
+        await googlePay.attach('#sq-google-pay-sdk')
         googlePayRef.current = googlePay
         setGooglePayReady(true)
       } catch {
@@ -256,7 +250,7 @@ export function PaymentModal({
     initRef.current = false
     setInitFailed(false)
     setError(null)
-    setTimeout(initializePayments, 500)
+    requestAnimationFrame(() => initializePayments())
   }, [initializePayments])
 
   useEffect(() => {
@@ -264,8 +258,8 @@ export function PaymentModal({
       setError(null)
       setSuccess(false)
       setInitFailed(false)
-      const timer = setTimeout(initializePayments, 500)
-      return () => clearTimeout(timer)
+      const raf = requestAnimationFrame(() => initializePayments())
+      return () => cancelAnimationFrame(raf)
     } else {
       if (cardRef.current) {
         try { cardRef.current.destroy() } catch { /* ignore */ }
@@ -287,20 +281,6 @@ export function PaymentModal({
       setInitFailed(false)
     }
   }, [open, initializePayments])
-
-  // Google Pay click via native event (SDK button is in an iframe, doesn't bubble to React)
-  const handleGooglePayRef = useRef<() => void>(() => {})
-  useEffect(() => {
-    handleGooglePayRef.current = handleGooglePay
-  })
-  useEffect(() => {
-    if (!googlePayReady) return
-    const el = document.getElementById('sq-google-pay')
-    if (!el) return
-    const handler = () => handleGooglePayRef.current()
-    el.addEventListener('click', handler)
-    return () => el.removeEventListener('click', handler)
-  }, [googlePayReady])
 
   // --- Payment handler (shared for card, Apple Pay, Google Pay) ---
   async function processPayment(sourceId: string | null) {
@@ -422,6 +402,9 @@ export function PaymentModal({
 
   return (
     <>
+      {/* Hidden container for Google Pay SDK initialization */}
+      <div id="sq-google-pay-sdk" style={{ position: 'fixed', top: -9999, left: -9999, width: 400, height: 48 }} aria-hidden />
+
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-50 bg-black/50 transition-opacity"
@@ -600,11 +583,25 @@ export function PaymentModal({
                     </button>
                   )}
 
-                  {/* Google Pay — single container, always in DOM, toggled via CSS */}
-                  <div
-                    id="sq-google-pay"
-                    className={`min-h-[48px] overflow-hidden rounded-lg [&_button]:!rounded-lg ${!googlePayReady ? 'hidden' : ''}`}
-                  />
+                  {/* Google Pay — custom button (SDK button renders white/broken) */}
+                  {googlePayReady && (
+                    <button
+                      type="button"
+                      onClick={handleGooglePay}
+                      disabled={processing}
+                      className="flex h-12 w-full items-center justify-center gap-1 rounded-lg bg-white border border-gray-300 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      <svg viewBox="0 0 41 17" className="h-[17px]" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.526 2.635v4.083h2.518c.6 0 1.096-.202 1.488-.605.403-.402.605-.882.605-1.437 0-.544-.202-1.018-.605-1.422-.392-.413-.888-.62-1.488-.62h-2.518zm0 5.52v4.736h-1.504V1.198h3.99c1.013 0 1.873.337 2.582 1.012.72.675 1.08 1.497 1.08 2.466 0 .991-.36 1.819-1.08 2.482-.697.665-1.559.997-2.583.997h-2.485z" fill="#5F6368"/>
+                        <path d="M27.194 10.442c0 .544.202 1.018.605 1.422.403.413.9.62 1.49.62.588 0 1.08-.207 1.477-.62.403-.404.604-.878.604-1.422V8.785c-.382.31-.887.464-1.517.464-.676 0-1.24.186-1.692.558-.456.371-.684.853-.684 1.446l-.283-.811zm4.176 4.431V13.99c-.65.622-1.457.932-2.42.932-1.015 0-1.875-.344-2.584-1.034-.697-.691-1.046-1.558-1.046-2.6 0-1.06.36-1.926 1.08-2.6.72-.675 1.612-1.012 2.671-1.012.856 0 1.563.24 2.12.72v-.54c0-.665-.233-1.208-.698-1.627-.465-.42-1.057-.63-1.774-.63-.955 0-1.692.413-2.213 1.237l-1.178-.72c.752-1.148 1.882-1.722 3.39-1.722 1.114 0 2.02.32 2.716.963.697.643 1.046 1.504 1.046 2.583v6.933h-1.11z" fill="#5F6368"/>
+                        <path d="M35.49 14.873l-3.008-7.963h1.578l2.186 5.905 2.164-5.905h1.578l-3.536 9.41c-.594 1.573-1.426 2.36-2.494 2.36-.465 0-.852-.063-1.163-.186v-1.237c.31.124.665.186 1.064.186.596 0 1.038-.376 1.324-1.128l.307-.754v-.688z" fill="#5F6368"/>
+                        <path d="M13.986 7.173c0-.429-.036-.843-.106-1.238H7.142v2.344h3.834a3.28 3.28 0 01-1.424 2.153v1.79h2.305c1.35-1.243 2.129-3.073 2.129-5.049z" fill="#4285F4"/>
+                        <path d="M7.142 12.994c1.929 0 3.545-.64 4.728-1.733l-2.305-1.79c-.64.428-1.457.68-2.423.68-1.862 0-3.44-1.258-4.005-2.95H.76v1.846c1.174 2.327 3.587 3.947 6.382 3.947z" fill="#34A853"/>
+                        <path d="M3.137 7.201a4.306 4.306 0 010-2.744V2.611H.76a7.15 7.15 0 000 6.436l2.377-1.846z" fill="#FBBC04"/>
+                        <path d="M7.142 2.507c1.05 0 1.994.361 2.736 1.07l2.053-2.053C10.682.582 9.066-.07 7.142-.07c-2.795 0-5.208 1.62-6.382 3.947l2.377 1.847c.565-1.693 2.143-2.95 4.005-2.95v-.267z" fill="#EA4335"/>
+                      </svg>
+                    </button>
+                  )}
 
                   {(applePayReady || googlePayReady) && (
                     <div className="flex items-center gap-3">
