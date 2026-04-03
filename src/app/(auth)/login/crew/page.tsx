@@ -136,6 +136,13 @@ export default function CrewLoginPage() {
             )}
           </Button>
 
+          <Link
+            href="/forgot-password"
+            className="text-center text-sm font-medium text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+
           <p className="text-center text-sm text-gray-500">
             Crew accounts are created by your manager.
             <br />

@@ -137,6 +137,13 @@ function UserLoginForm() {
             )}
           </Button>
 
+          <Link
+            href="/forgot-password"
+            className="text-center text-sm font-medium text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+
           <p className="text-center text-sm text-gray-500">
             Don&apos;t have an account?{' '}
             <Link
