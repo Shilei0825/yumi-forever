@@ -47,7 +47,15 @@ export function PaymentModal({
 }: PaymentModalProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cardRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const googlePayRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applePayRef = useRef<any>(null)
+  const chargeAmountRef = useRef(0)
+
   const [cardReady, setCardReady] = useState(false)
+  const [googlePayReady, setGooglePayReady] = useState(false)
+  const [applePayReady, setApplePayReady] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -65,6 +73,9 @@ export function PaymentModal({
   const [loadingCredits, setLoadingCredits] = useState(false)
 
   const chargeAmount = Math.max(0, amount - creditToApply)
+
+  // Keep ref in sync so wallet handlers always use latest value
+  chargeAmountRef.current = chargeAmount
 
   // Fetch available credits when modal opens
   useEffect(() => {
@@ -135,7 +146,8 @@ export function PaymentModal({
     })
   }, [])
 
-  // Initialize card form — only depends on open + loadSquareScript (stable refs)
+  // Initialize card + wallet forms — only depends on open + loadSquareScript (stable refs)
+  // chargeAmount is read via ref so credit adjustments don't re-trigger init
   const initializePayments = useCallback(async () => {
     if (!open || initRef.current) return
     setInitFailed(false)
@@ -160,6 +172,7 @@ export function PaymentModal({
 
       const payments = await window.Square.payments(appId, locationId)
 
+      // --- Card ---
       const card = await payments.card({
         style: {
           '.input-container': {
@@ -182,6 +195,44 @@ export function PaymentModal({
       await card.attach('#sq-card-container')
       cardRef.current = card
       setCardReady(true)
+
+      // --- Google Pay (silent fail if unavailable) ---
+      try {
+        const paymentRequest = payments.paymentRequest({
+          countryCode: 'US',
+          currencyCode: 'USD',
+          total: {
+            amount: (Math.max(1, chargeAmountRef.current) / 100).toFixed(2),
+            label: serviceName || 'Yumi Forever',
+          },
+        })
+        const gPay = await payments.googlePay(paymentRequest)
+        // Attach to hidden offscreen container (we use custom button for UI)
+        await gPay.attach('#sq-google-pay-hidden')
+        googlePayRef.current = gPay
+        setGooglePayReady(true)
+      } catch {
+        // Google Pay not available — silently skip
+        console.log('Google Pay not available')
+      }
+
+      // --- Apple Pay (silent fail if unavailable) ---
+      try {
+        const paymentRequest = payments.paymentRequest({
+          countryCode: 'US',
+          currencyCode: 'USD',
+          total: {
+            amount: (Math.max(1, chargeAmountRef.current) / 100).toFixed(2),
+            label: serviceName || 'Yumi Forever',
+          },
+        })
+        const aPay = await payments.applePay(paymentRequest)
+        applePayRef.current = aPay
+        setApplePayReady(true)
+      } catch {
+        // Apple Pay not available — silently skip
+        console.log('Apple Pay not available')
+      }
     } catch (err: unknown) {
       console.error('Square init error:', err)
       const msg = err instanceof Error ? err.message : String(err)
@@ -189,14 +240,18 @@ export function PaymentModal({
       setInitFailed(true)
       initRef.current = false
     }
-  }, [open, loadSquareScript])
+  }, [open, loadSquareScript, serviceName])
 
   const handleRetry = useCallback(() => {
     if (cardRef.current) {
       try { cardRef.current.destroy() } catch { /* ignore */ }
       cardRef.current = null
     }
+    googlePayRef.current = null
+    applePayRef.current = null
     setCardReady(false)
+    setGooglePayReady(false)
+    setApplePayReady(false)
     initRef.current = false
     setInitFailed(false)
     setError(null)
@@ -215,7 +270,11 @@ export function PaymentModal({
         try { cardRef.current.destroy() } catch { /* ignore */ }
         cardRef.current = null
       }
+      googlePayRef.current = null
+      applePayRef.current = null
       setCardReady(false)
+      setGooglePayReady(false)
+      setApplePayReady(false)
       initRef.current = false
       setInitFailed(false)
     }
@@ -233,7 +292,7 @@ export function PaymentModal({
         body: JSON.stringify({
           source_id: sourceId,
           booking_id: bookingId,
-          amount: chargeAmount,
+          amount: chargeAmountRef.current,
           payment_type: paymentType,
           credit_amount: creditToApply > 0 ? creditToApply : undefined,
         }),
@@ -302,6 +361,48 @@ export function PaymentModal({
     }
   }
 
+  async function handleGooglePay() {
+    if (processing || !googlePayRef.current) return
+    setProcessing(true)
+    setError(null)
+
+    try {
+      const tokenResult = await googlePayRef.current.tokenize()
+      if (tokenResult.status !== 'OK' || !tokenResult.token) {
+        const errMsg = tokenResult.errors?.[0]?.message || 'Google Pay failed'
+        setError(errMsg)
+        setProcessing(false)
+        return
+      }
+      setProcessing(false)
+      await processPayment(tokenResult.token)
+    } catch {
+      setError('Google Pay was cancelled or failed. Please try again.')
+      setProcessing(false)
+    }
+  }
+
+  async function handleApplePay() {
+    if (processing || !applePayRef.current) return
+    setProcessing(true)
+    setError(null)
+
+    try {
+      const tokenResult = await applePayRef.current.tokenize()
+      if (tokenResult.status !== 'OK' || !tokenResult.token) {
+        const errMsg = tokenResult.errors?.[0]?.message || 'Apple Pay failed'
+        setError(errMsg)
+        setProcessing(false)
+        return
+      }
+      setProcessing(false)
+      await processPayment(tokenResult.token)
+    } catch {
+      setError('Apple Pay was cancelled or failed. Please try again.')
+      setProcessing(false)
+    }
+  }
+
   if (!open) return null
 
   return (
@@ -311,6 +412,9 @@ export function PaymentModal({
         className="fixed inset-0 z-50 bg-black/50 transition-opacity"
         onClick={onClose}
       />
+
+      {/* Hidden offscreen container for Google Pay SDK init (we use custom button for UI) */}
+      <div id="sq-google-pay-hidden" style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '1px', height: '1px', overflow: 'hidden' }} />
 
       {/* Slide-in Panel */}
       <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md transform overflow-y-auto bg-white transition-transform duration-300 ease-out sm:rounded-l-2xl">
@@ -462,6 +566,60 @@ export function PaymentModal({
                       Your credits cover the full amount!
                     </p>
                     <p className="mt-1 text-xs text-green-600">No card payment needed.</p>
+                  </div>
+                )}
+
+                {/* Wallet Buttons — only show when charge > 0 and wallet is ready */}
+                {chargeAmount > 0 && (googlePayReady || applePayReady) && (
+                  <div className="space-y-3">
+                    {/* Google Pay Button */}
+                    {googlePayReady && (
+                      <button
+                        type="button"
+                        onClick={handleGooglePay}
+                        disabled={processing}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {processing ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z" fill="#4285F4"/>
+                            </svg>
+                            <span>Pay with Google Pay</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Apple Pay Button */}
+                    {applePayReady && (
+                      <button
+                        type="button"
+                        onClick={handleApplePay}
+                        disabled={processing}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                      >
+                        {processing ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="white">
+                              <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                            </svg>
+                            <span>Pay with Apple Pay</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Divider between wallet and card */}
+                    <div className="flex items-center gap-3">
+                      <div className="h-px flex-1 bg-gray-200" />
+                      <span className="text-xs text-gray-400">or pay with card</span>
+                      <div className="h-px flex-1 bg-gray-200" />
+                    </div>
                   </div>
                 )}
 
