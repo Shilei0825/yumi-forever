@@ -1537,7 +1537,9 @@ function OfficeBookingPageInner() {
                     <div>
                       <p className="font-medium text-green-800">No deposit required!</p>
                       <p className="mt-0.5 text-sm text-green-700">
-                        First-time customers book free. You&apos;ll pay after service is completed.
+                        No deposit needed — we trust you&apos;ll keep your appointment. You&apos;ll pay after service is completed.
+                        Please note: if you do not cancel at least 24 hours before your appointment, future bookings
+                        will require a deposit based on the services booked.
                       </p>
                     </div>
                   </div>
@@ -1577,7 +1579,7 @@ function OfficeBookingPageInner() {
                 />
                 <span className="text-sm text-gray-600">
                   {depositRequired === false
-                    ? 'I agree to the service terms. No deposit is required for first-time customers. No-shows or late cancellations may require a deposit for future bookings.'
+                    ? 'I agree to the service terms and commit to keeping my appointment. I understand that cancellations within 24 hours or no-shows will require a deposit for future bookings, based on the services booked.'
                     : `I agree to the service terms. First month's payment of ${formatCurrency(quote?.monthlyTotal ?? 0)} will be charged.`}
                 </span>
               </label>

@@ -872,7 +872,7 @@ export default function AdminBookingDetailPage() {
                   <span className="text-gray-500">Deposit Required</span>
                   <span className="text-gray-900">
                     {booking.deposit_waived
-                      ? 'Waived (first-time customer)'
+                      ? 'Waived (no prior violations)'
                       : formatCurrency(booking.deposit_amount)}
                   </span>
                 </div>

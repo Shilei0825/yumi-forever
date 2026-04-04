@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Check, Calendar, Clock, CreditCard } from "lucide-react"
+import { Check, Calendar, Clock, CreditCard, LogIn, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -31,6 +31,8 @@ function BookingConfirmationContent() {
   const bookingId = searchParams.get("booking_id")
   const justPaid = searchParams.get("payment") === "success"
   const [booking, setBooking] = useState<BookingData | null>(null)
+  const [hasAccount, setHasAccount] = useState(false)
+  const [accountMatchedBy, setAccountMatchedBy] = useState<'email' | 'phone' | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -48,6 +50,8 @@ function BookingConfirmationContent() {
       })
       .then((data) => {
         setBooking(data.booking)
+        setHasAccount(data.hasAccount ?? false)
+        setAccountMatchedBy(data.accountMatchedBy ?? null)
         setLoading(false)
       })
       .catch(() => {
@@ -181,11 +185,21 @@ function BookingConfirmationContent() {
           </CardContent>
 
           <CardFooter className="flex-col gap-3 px-6 pb-8 pt-4">
-            <Button className="w-full" asChild>
-              <Link href={`/signup?booking_id=${bookingId}`}>
-                Create an Account to Manage Bookings
-              </Link>
-            </Button>
+            {hasAccount ? (
+              <Button className="w-full" asChild>
+                <Link href="/login">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Log in with your {accountMatchedBy === 'phone' ? 'phone number' : 'email'} to manage bookings
+                </Link>
+              </Button>
+            ) : (
+              <Button className="w-full" asChild>
+                <Link href={`/signup?booking_id=${bookingId}`}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Sign up to manage your bookings
+                </Link>
+              </Button>
+            )}
             <Button variant="ghost" className="w-full" asChild>
               <Link href="/">Back to Home</Link>
             </Button>

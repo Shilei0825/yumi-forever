@@ -43,8 +43,40 @@ export async function GET(
       if (svc) serviceName = svc.name
     }
 
+    // Check if the customer has an existing account (by email or phone)
+    let hasAccount = false
+    let accountMatchedBy: 'email' | 'phone' | null = null
+
+    if (booking.customer_email) {
+      const { data: emailMatch } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', booking.customer_email)
+        .limit(1)
+        .single()
+      if (emailMatch) {
+        hasAccount = true
+        accountMatchedBy = 'email'
+      }
+    }
+
+    if (!hasAccount && booking.customer_phone) {
+      const { data: phoneMatch } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', booking.customer_phone)
+        .limit(1)
+        .single()
+      if (phoneMatch) {
+        hasAccount = true
+        accountMatchedBy = 'phone'
+      }
+    }
+
     return NextResponse.json({
       booking: { ...booking, service_name: serviceName },
+      hasAccount,
+      accountMatchedBy,
     })
   } catch (error) {
     console.error('Public booking lookup error:', error)

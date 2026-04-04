@@ -1436,7 +1436,9 @@ function BookingPageInner() {
                     <p className="text-sm font-medium text-green-800">No deposit required!</p>
                   </div>
                   <p className="mt-1 text-xs text-green-700">
-                    As a first-time customer, no deposit is needed. You&apos;ll pay after your service is completed.
+                    No deposit needed — we trust you&apos;ll keep your appointment. You&apos;ll pay after your service is completed.
+                    Please note: if you do not cancel at least 24 hours before your appointment, future bookings
+                    will require a deposit based on the services booked.
                   </p>
                 </div>
               ) : depositRequired === true && booking.service?.depositAmount && booking.service.depositAmount > 0 ? (
@@ -1457,18 +1459,36 @@ function BookingPageInner() {
               {/* Cancellation Policy */}
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <h3 className="text-sm font-medium text-gray-900 mb-3">Cancellation Policy</h3>
-                <div className="rounded-md border border-green-200 bg-green-50 p-3 mb-3">
-                  <p className="text-sm font-medium text-green-800">Free cancellation available</p>
-                  <p className="mt-1 text-xs text-green-700">
-                    Cancel at least 24 hours before your appointment and your full deposit of{' '}
-                    {formatCurrency(booking.service?.depositAmount || 0)} will be returned to your card within 5–10 business days.
-                  </p>
-                </div>
-                <ul className="space-y-1.5 text-xs text-gray-600">
-                  <li>Cancellations within 24 hours of the appointment will forfeit the deposit.</li>
-                  <li>No-shows will be charged the full service amount.</li>
-                  <li>Rescheduling is free up to 24 hours before the appointment.</li>
-                </ul>
+                {depositRequired === false ? (
+                  <>
+                    <div className="rounded-md border border-green-200 bg-green-50 p-3 mb-3">
+                      <p className="text-sm font-medium text-green-800">Free cancellation up to 24 hours before</p>
+                      <p className="mt-1 text-xs text-green-700">
+                        You may cancel or reschedule at no charge up to 24 hours before your appointment.
+                      </p>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-gray-600">
+                      <li>Cancellations within 24 hours of the appointment or no-shows will require a deposit for future bookings.</li>
+                      <li>The deposit amount will be based on the services booked.</li>
+                      <li>Rescheduling is free up to 24 hours before the appointment.</li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-md border border-green-200 bg-green-50 p-3 mb-3">
+                      <p className="text-sm font-medium text-green-800">Free cancellation available</p>
+                      <p className="mt-1 text-xs text-green-700">
+                        Cancel at least 24 hours before your appointment and your full deposit of{' '}
+                        {formatCurrency(booking.service?.depositAmount || 0)} will be returned to your card within 5–10 business days.
+                      </p>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-gray-600">
+                      <li>Cancellations within 24 hours of the appointment will forfeit the deposit.</li>
+                      <li>No-shows will be charged the full service amount.</li>
+                      <li>Rescheduling is free up to 24 hours before the appointment.</li>
+                    </ul>
+                  </>
+                )}
               </div>
 
               {/* Consent */}
@@ -1484,7 +1504,7 @@ function BookingPageInner() {
                   on-site based on actual vehicle condition.
                   {depositRequired
                     ? ` I agree to pay the deposit of ${formatCurrency(booking.service?.depositAmount || 0)} to confirm my booking.`
-                    : ' I understand that no-shows or cancellations within 24 hours may result in a deposit requirement for future bookings.'}
+                    : ' I commit to keeping my appointment and understand that cancellations within 24 hours or no-shows will require a deposit for future bookings, based on the services booked.'}
                 </span>
               </label>
 
