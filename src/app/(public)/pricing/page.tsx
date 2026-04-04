@@ -626,42 +626,77 @@ export default function PricingPage() {
           </p>
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FLEET_SERVICES.map((service) => (
-              <Card
-                key={service.slug}
-                className="relative"
-              >
-                <CardHeader>
-                  <CardTitle className="text-lg">
-                    <Link
-                      href={`/services/${service.slug}`}
-                      className="hover:underline"
-                    >
-                      {service.name}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription>{service.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-emerald-700">
-                    Custom Quote
-                  </p>
-                  <div className="mt-6">
-                    <Button size="sm" asChild>
-                      <Link href={`/contact?service=${service.slug}`}>
-                        Get Quote
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {FLEET_SERVICES.map((service) => {
+              const hasPrice = service.basePrice > 0
+              const svc = service as typeof service & { priceMax?: number; pricingUnit?: string; volumeNote?: string }
+              return (
+                <Card
+                  key={service.slug}
+                  className={cn("relative", hasPrice && "border-emerald-200 ring-1 ring-emerald-100")}
+                >
+                  {hasPrice && (
+                    <div className="absolute -top-3 left-4">
+                      <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-medium text-white">
+                        Popular
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="text-lg">{service.name}</CardTitle>
+                    <CardDescription>{service.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {hasPrice ? (
+                      <>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-bold text-emerald-700">
+                            {formatCurrency(service.basePrice)}
+                          </span>
+                          {svc.priceMax && (
+                            <span className="text-2xl font-bold text-emerald-700">
+                              – {formatCurrency(svc.priceMax)}
+                            </span>
+                          )}
+                          {svc.pricingUnit && (
+                            <span className="text-sm text-neutral-500">/ {svc.pricingUnit}</span>
+                          )}
+                        </div>
+                        {svc.volumeNote && (
+                          <p className="mt-2 text-xs text-emerald-600">{svc.volumeNote}</p>
+                        )}
+                        <div className="mt-6">
+                          <Button size="sm" asChild>
+                            <Link href={`/contact?service=${service.slug}`}>
+                              Get Started
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-bold text-emerald-700">
+                          Custom Quote
+                        </p>
+                        <div className="mt-6">
+                          <Button size="sm" asChild>
+                            <Link href={`/contact?service=${service.slug}`}>
+                              Get Quote
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
 
           <p className="mt-8 text-sm text-neutral-500">
-            All fleet services are custom-quoted based on fleet size and
-            requirements.
+            Fleet and commercial services are custom-quoted based on fleet size and
+            requirements. Dealership lot wash pricing shown above.
           </p>
         </div>
       </section>

@@ -18,6 +18,7 @@ import {
   CardContent,
 } from "@/components/ui/card"
 import { BRAND, FLEET_SERVICES } from "@/lib/constants"
+import { formatCurrency } from "@/lib/utils"
 
 import type { Metadata } from "next"
 
@@ -75,7 +76,7 @@ const INDUSTRIES = [
   },
   {
     title: "Car Dealerships",
-    description: "Lot wash, detail prep, and delivery detailing for new and pre-owned inventory.",
+    description: "Lot wash, detail prep, and delivery detailing for new and pre-owned inventory. Starting at $75/car with volume pricing for 80+ vehicles.",
   },
   {
     title: "Ride-Share & Rental",
@@ -135,33 +136,55 @@ export default function TruckFleetPage() {
           </p>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FLEET_SERVICES.map((service) => (
-              <Card key={service.slug} className="flex flex-col">
-                <CardHeader>
-                  <Link href={`/services/${service.slug}`} className="hover:underline">
+            {FLEET_SERVICES.map((service) => {
+              const hasPrice = service.basePrice > 0
+              const svc = service as typeof service & { priceMax?: number; pricingUnit?: string; volumeNote?: string }
+              return (
+                <Card key={service.slug} className={`flex flex-col ${hasPrice ? 'border-violet-200 ring-1 ring-violet-100' : ''}`}>
+                  <CardHeader>
                     <CardTitle className="text-xl">{service.name}</CardTitle>
-                  </Link>
-                  <CardDescription className="text-base">
-                    {service.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col justify-end">
-                  <div className="border-t border-neutral-100 pt-4">
-                    <p className="text-sm font-medium text-neutral-700">
-                      Custom pricing based on fleet size
-                    </p>
-                  </div>
-                  <div className="mt-6 flex gap-3">
-                    <Button variant="outline" className="flex-1" asChild>
-                      <Link href={`/services/${service.slug}`}>Details</Link>
-                    </Button>
-                    <Button className="flex-1" asChild>
-                      <Link href={`/contact?service=${service.slug}`}>Get Quote</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <CardDescription className="text-base">
+                      {service.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-1 flex-col justify-end">
+                    <div className="border-t border-neutral-100 pt-4">
+                      {hasPrice ? (
+                        <>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-violet-700">
+                              {formatCurrency(service.basePrice)}
+                            </span>
+                            {svc.priceMax && (
+                              <span className="text-xl font-bold text-violet-700">
+                                – {formatCurrency(svc.priceMax)}
+                              </span>
+                            )}
+                            {svc.pricingUnit && (
+                              <span className="text-sm text-neutral-500">/ {svc.pricingUnit}</span>
+                            )}
+                          </div>
+                          {svc.volumeNote && (
+                            <p className="mt-1 text-xs text-violet-600">{svc.volumeNote}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm font-medium text-neutral-700">
+                          Custom pricing based on fleet size
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-6 flex gap-3">
+                      <Button className="flex-1" asChild>
+                        <Link href={`/contact?service=${service.slug}`}>
+                          {hasPrice ? 'Get Started' : 'Get Quote'}
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         </div>
       </section>

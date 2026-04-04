@@ -174,6 +174,18 @@ export const HOME_ADDONS: {
 
 export const FLEET_SERVICES = [
   {
+    name: 'Dealership Lot Wash',
+    slug: 'dealership-lot-wash',
+    description: 'On-site mobile wash for dealership inventory. Exterior wash, tire shine, and window cleaning for every vehicle on your lot.',
+    basePrice: 7500,
+    priceMax: 10000,
+    pricingUnit: 'per car',
+    volumeNote: 'Volume pricing available for 80+ cars/month',
+    duration: 15,
+    requiresQuote: false,
+    requiresDeposit: false,
+  },
+  {
     name: 'Fleet Wash',
     slug: 'fleet-wash',
     description: 'Exterior wash for fleet vehicles at your location.',
