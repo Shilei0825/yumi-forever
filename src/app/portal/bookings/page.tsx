@@ -54,7 +54,7 @@ export default function BookingsPage() {
     const { data, error } = await supabase
       .from('bookings')
       .select(
-        '*, service:services(*), payments(*), assigned_crew:crew_assignments(*, crew_member:profiles(*))'
+        '*, service:services(*), payments(*), assigned_crew:dispatch_assignments(*, crew_member:profiles!dispatch_assignments_crew_member_id_fkey(*))'
       )
       .eq('profile_id', user.id)
       .order('scheduled_date', { ascending: false })
@@ -71,13 +71,14 @@ export default function BookingsPage() {
   }, [fetchBookings])
 
   const pastStatuses = ['completed', 'canceled', 'canceled_refundable', 'canceled_nonrefundable', 'no_show']
+  const today = new Date().toISOString().split('T')[0]
 
   const upcomingBookings = bookings.filter(
-    (b) => !pastStatuses.includes(b.status)
+    (b) => !pastStatuses.includes(b.status) && b.scheduled_date >= today
   )
 
   const pastBookings = bookings.filter((b) =>
-    pastStatuses.includes(b.status)
+    pastStatuses.includes(b.status) || b.scheduled_date < today
   )
 
   function getPaymentStatus(payments?: Payment[]) {

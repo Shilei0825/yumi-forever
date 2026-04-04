@@ -72,7 +72,7 @@ export default function BookingDetailPage() {
     const { data, error } = await supabase
       .from('bookings')
       .select(
-        '*, service:services(*), payments(*), assigned_crew:crew_assignments(*, crew_member:profiles(*))'
+        '*, service:services(*), payments(*), assigned_crew:dispatch_assignments(*, crew_member:profiles!dispatch_assignments_crew_member_id_fkey(*))'
       )
       .eq('id', bookingId)
       .eq('profile_id', user.id)

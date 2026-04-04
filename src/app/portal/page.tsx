@@ -43,12 +43,14 @@ export default async function PortalDashboardPage() {
     .eq('id', user.id)
     .single()
 
-  // Fetch upcoming bookings (not completed or canceled)
+  // Fetch upcoming bookings (not completed/canceled and not past date)
+  const today = new Date().toISOString().split('T')[0]
   const { data: upcomingBookings } = await supabase
     .from('bookings')
     .select('*, service:services(*)')
     .eq('profile_id', user.id)
     .not('status', 'in', '("completed","canceled","canceled_refundable","canceled_nonrefundable","no_show")')
+    .gte('scheduled_date', today)
     .order('scheduled_date', { ascending: true })
     .limit(5)
 
