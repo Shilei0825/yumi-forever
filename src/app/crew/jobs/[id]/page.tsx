@@ -18,6 +18,9 @@ import {
   FileText,
   ListChecks,
   DollarSign,
+  Banknote,
+  CreditCard,
+  UserCheck,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -192,7 +195,7 @@ export default function CrewJobDetailPage({
     }
   }
 
-  async function handleCompleteJob() {
+  async function handleCompleteJob(paymentMethod?: 'cash' | 'square_device') {
     if (!booking) return
     setActionLoading(true)
     try {
@@ -202,13 +205,19 @@ export default function CrewJobDetailPage({
         body: JSON.stringify({
           action: 'complete_job',
           booking_id: booking.id,
+          payment_method: paymentMethod || undefined,
           notes: completionNotes || undefined,
         }),
       })
 
       if (response.ok) {
         setShowCompletePrompt(false)
-        setSuccessMessage('Job completed successfully!')
+        const label = paymentMethod === 'cash'
+          ? 'Job completed — cash collected!'
+          : paymentMethod === 'square_device'
+            ? 'Job completed — card payment collected!'
+            : 'Job completed — customer will pay later.'
+        setSuccessMessage(label)
         await fetchBookingDetails()
         setTimeout(() => setSuccessMessage(''), 5000)
       }
@@ -428,27 +437,55 @@ export default function CrewJobDetailPage({
               rows={3}
               className="min-h-[80px] text-base"
             />
-            <div className="flex gap-3">
+
+            <p className="text-sm font-medium text-gray-700">How was payment collected?</p>
+            <div className="space-y-2">
               <Button
-                variant="outline"
-                className="h-12 flex-1 text-base"
-                onClick={() => setShowCompletePrompt(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="h-12 flex-1 bg-blue-600 text-base font-semibold text-white hover:bg-blue-700"
-                onClick={handleCompleteJob}
+                className="h-14 w-full bg-green-600 text-base font-semibold text-white hover:bg-green-700"
+                onClick={() => handleCompleteJob('cash')}
                 disabled={actionLoading}
               >
                 {actionLoading ? (
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : (
-                  <CheckCircle className="mr-2 h-5 w-5" />
+                  <Banknote className="mr-2 h-5 w-5" />
                 )}
-                Confirm
+                Complete — Cash Paid
+              </Button>
+              <Button
+                className="h-14 w-full bg-blue-600 text-base font-semibold text-white hover:bg-blue-700"
+                onClick={() => handleCompleteJob('square_device')}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-5 w-5" />
+                )}
+                Complete — Card Collected
+              </Button>
+              <Button
+                variant="outline"
+                className="h-14 w-full text-base font-semibold"
+                onClick={() => handleCompleteJob()}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <UserCheck className="mr-2 h-5 w-5" />
+                )}
+                Complete — Customer Pays Later
               </Button>
             </div>
+
+            <Button
+              variant="outline"
+              className="h-10 w-full text-sm text-gray-500"
+              onClick={() => setShowCompletePrompt(false)}
+            >
+              Cancel
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -137,9 +137,30 @@ export async function POST(request: Request) {
 
         // Update booking status
         if (paymentType === 'full' || paymentType === 'remaining_balance' || paymentType === 'balance') {
+          // Get current booking status to decide new status
+          const { data: currentBookingForStatus } = await supabase
+            .from('bookings')
+            .select('status, total, final_price, deposit_paid')
+            .eq('id', bookingId)
+            .single()
+
+          const currentStatus = currentBookingForStatus?.status
+          // Don't revert completed/in_progress bookings back to confirmed
+          const newStatus = currentStatus === 'completed' || currentStatus === 'in_progress'
+            ? currentStatus
+            : 'confirmed'
+
+          const bookingUpdate: Record<string, unknown> = {
+            payment_status: 'paid',
+            remaining_balance: 0,
+          }
+          if (newStatus !== currentStatus) {
+            bookingUpdate.status = newStatus
+          }
+
           const { error: bookingUpdateError } = await supabase
             .from('bookings')
-            .update({ status: 'confirmed', payment_status: 'paid' })
+            .update(bookingUpdate)
             .eq('id', bookingId)
 
           if (bookingUpdateError) {
@@ -147,13 +168,16 @@ export async function POST(request: Request) {
           }
 
           // Insert status history entry
+          const historyNotes = paymentType === 'remaining_balance' || paymentType === 'balance'
+            ? 'Remaining balance paid via customer portal'
+            : 'Full payment completed - booking confirmed'
           const { error: historyError } = await supabase
             .from('booking_status_history')
             .insert({
               booking_id: bookingId,
-              status: 'confirmed',
+              status: newStatus,
               changed_by: null,
-              notes: 'Payment completed - booking confirmed',
+              notes: historyNotes,
             })
 
           if (historyError) {

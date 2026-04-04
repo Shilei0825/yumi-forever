@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
@@ -85,10 +86,18 @@ export async function POST(request: Request) {
           )
         }
 
-        // Get the booking to calculate actual duration
+        const { payment_method } = rest // 'cash' | 'square_device' | undefined (customer pays later)
+
+        // Use service client for payment inserts
+        const supabaseAdmin = createServiceClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+
+        // Get the booking to calculate actual duration and amount
         const { data: existingBooking } = await supabase
           .from('bookings')
-          .select('started_at')
+          .select('started_at, total, final_price, deposit_paid, profile_id')
           .eq('id', booking_id)
           .single()
 
@@ -102,14 +111,29 @@ export async function POST(request: Request) {
           )
         }
 
+        // Determine payment status based on payment_method
+        const effectiveTotal = existingBooking?.final_price ?? existingBooking?.total ?? 0
+        const alreadyPaid = existingBooking?.deposit_paid ?? 0
+        const remainingBalance = Math.max(0, effectiveTotal - alreadyPaid)
+        const isPaidOnsite = payment_method === 'cash' || payment_method === 'square_device'
+
+        // Build booking update
+        const bookingUpdate: Record<string, unknown> = {
+          status: 'completed',
+          completed_at: completedAt.toISOString(),
+          actual_duration_minutes: actualDurationMinutes,
+        }
+
+        if (isPaidOnsite) {
+          bookingUpdate.payment_status = 'paid'
+          bookingUpdate.remaining_balance = 0
+          bookingUpdate.deposit_paid = effectiveTotal
+        }
+
         // Update booking status to 'completed'
         const { data: booking, error: updateError } = await supabase
           .from('bookings')
-          .update({
-            status: 'completed',
-            completed_at: completedAt.toISOString(),
-            actual_duration_minutes: actualDurationMinutes,
-          })
+          .update(bookingUpdate)
           .eq('id', booking_id)
           .select()
           .single()
@@ -122,12 +146,33 @@ export async function POST(request: Request) {
           )
         }
 
+        // Record payment if paid onsite
+        if (isPaidOnsite && remainingBalance > 0) {
+          await supabaseAdmin.from('payments').insert({
+            booking_id,
+            profile_id: existingBooking?.profile_id || null,
+            amount: remainingBalance,
+            status: 'paid',
+            payment_type: 'balance',
+            payment_method,
+            square_payment_id: null,
+            square_order_id: null,
+          })
+        }
+
+        // Build completion notes
+        const paymentLabel = payment_method === 'cash'
+          ? 'Cash collected'
+          : payment_method === 'square_device'
+            ? 'Card collected via device'
+            : 'Customer pays later'
+
         // Insert status history
         await supabase.from('booking_status_history').insert({
           booking_id,
           status: 'completed',
           changed_by: user.id,
-          notes: `Job completed. Duration: ${actualDurationMinutes ?? 'N/A'} minutes`,
+          notes: `Job completed. Duration: ${actualDurationMinutes ?? 'N/A'} min. Payment: ${paymentLabel}`,
         })
 
         // Create payroll entry based on crew pay profile

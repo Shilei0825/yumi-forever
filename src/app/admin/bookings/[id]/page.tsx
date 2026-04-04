@@ -965,6 +965,11 @@ export default function AdminBookingDetailPage() {
                       <div key={payment.id} className="flex items-center justify-between text-sm">
                         <div>
                           <span className="text-gray-700">{getStatusLabel(payment.payment_type)}</span>
+                          {(payment as any).payment_method && (payment as any).payment_method !== 'online' && (
+                            <span className="ml-1 text-xs text-gray-400">
+                              ({(payment as any).payment_method === 'cash' ? 'Cash' : 'Device'})
+                            </span>
+                          )}
                           <span className="ml-2">
                             <Badge className={getStatusColor(payment.status)}>
                               {getStatusLabel(payment.status)}

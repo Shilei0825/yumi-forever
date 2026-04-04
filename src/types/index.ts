@@ -171,6 +171,8 @@ export interface CrewAssignment {
   crew_member?: Profile
 }
 
+export type PaymentMethod = 'online' | 'cash' | 'square_device'
+
 export interface Payment {
   id: string
   booking_id: string
@@ -178,6 +180,7 @@ export interface Payment {
   amount: number
   status: PaymentStatus
   payment_type: 'deposit' | 'balance' | 'full' | 'tip' | 'refund'
+  payment_method: PaymentMethod
   square_payment_id: string | null
   square_order_id: string | null
   created_at: string
