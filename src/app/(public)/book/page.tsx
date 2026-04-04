@@ -14,6 +14,7 @@ import {
   Plus,
   Zap,
   Crown,
+  CheckCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { PaymentModal } from '@/components/payment-modal'
@@ -235,6 +236,9 @@ function BookingPageInner() {
   const [showPayment, setShowPayment] = useState(false)
   const [pendingBookingId, setPendingBookingId] = useState('')
   const [pendingAmount, setPendingAmount] = useState(0)
+  const [depositRequired, setDepositRequired] = useState<boolean | null>(null)
+  const [depositReason, setDepositReason] = useState('')
+  const [checkingDeposit, setCheckingDeposit] = useState(false)
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -491,7 +495,8 @@ function BookingPageInner() {
         subtotal,
         tax,
         total,
-        deposit_amount: booking.service?.depositAmount || 0,
+        deposit_amount: depositRequired ? (booking.service?.depositAmount || 0) : 0,
+        deposit_waived: !depositRequired,
         street: booking.street.trim(),
         unit: booking.unit.trim() || null,
         city: booking.city.trim(),
@@ -1184,8 +1189,37 @@ function BookingPageInner() {
               <Button variant="outline" onClick={goBack}>
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
-              <Button onClick={() => { if (validateDetails()) goNext() }}>
-                Continue <ArrowRight className="h-4 w-4" />
+              <Button
+                disabled={checkingDeposit}
+                onClick={async () => {
+                  if (!validateDetails()) return
+                  // Check deposit requirement
+                  setCheckingDeposit(true)
+                  try {
+                    const res = await fetch('/api/deposit-check', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        email: booking.customerEmail.trim(),
+                        phone: booking.customerPhone.trim(),
+                      }),
+                    })
+                    const data = await res.json()
+                    setDepositRequired(data.deposit_required)
+                    setDepositReason(data.reason || '')
+                  } catch {
+                    setDepositRequired(false)
+                  } finally {
+                    setCheckingDeposit(false)
+                    goNext()
+                  }
+                }}
+              >
+                {checkingDeposit ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Checking...</>
+                ) : (
+                  <>Continue <ArrowRight className="h-4 w-4" /></>
+                )}
               </Button>
             </div>
           </div>
@@ -1395,7 +1429,17 @@ function BookingPageInner() {
               )}
 
               {/* Deposit & Payment Info */}
-              {booking.service?.depositAmount && booking.service.depositAmount > 0 && (
+              {depositRequired === false ? (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <p className="text-sm font-medium text-green-800">No deposit required!</p>
+                  </div>
+                  <p className="mt-1 text-xs text-green-700">
+                    As a first-time customer, no deposit is needed. You&apos;ll pay after your service is completed.
+                  </p>
+                </div>
+              ) : depositRequired === true && booking.service?.depositAmount && booking.service.depositAmount > 0 ? (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-gray-900">Deposit due today</p>
@@ -1404,8 +1448,11 @@ function BookingPageInner() {
                   <p className="mt-1 text-xs text-gray-500">
                     The remaining balance of {formatCurrency(total - booking.service.depositAmount)} will be charged after service completion.
                   </p>
+                  {depositReason && (
+                    <p className="mt-1 text-xs text-amber-600">Deposit required due to: {depositReason}</p>
+                  )}
                 </div>
-              )}
+              ) : null}
 
               {/* Cancellation Policy */}
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -1434,8 +1481,10 @@ function BookingPageInner() {
                 />
                 <span className="text-sm text-gray-600">
                   I agree to the cancellation policy and understand the final price may be adjusted
-                  on-site based on actual vehicle condition. I agree to pay the deposit of{' '}
-                  {formatCurrency(booking.service?.depositAmount || 0)} to confirm my booking.
+                  on-site based on actual vehicle condition.
+                  {depositRequired
+                    ? ` I agree to pay the deposit of ${formatCurrency(booking.service?.depositAmount || 0)} to confirm my booking.`
+                    : ' I understand that no-shows or cancellations within 24 hours may result in a deposit requirement for future bookings.'}
                 </span>
               </label>
 
@@ -1461,10 +1510,15 @@ function BookingPageInner() {
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Processing...
                     </>
-                  ) : (
+                  ) : depositRequired ? (
                     <>
                       <CreditCard className="h-4 w-4" />
                       Pay Deposit {formatCurrency(booking.service?.depositAmount || 0)}
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Confirm Booking
                     </>
                   )}
                 </Button>

@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  CheckCircle,
   Loader2,
   CreditCard,
   Building2,
@@ -277,6 +278,9 @@ function OfficeBookingPageInner() {
   const [showPayment, setShowPayment] = useState(false)
   const [pendingBookingId, setPendingBookingId] = useState('')
   const [pendingAmount, setPendingAmount] = useState(0)
+  const [depositRequired, setDepositRequired] = useState<boolean | null>(null)
+  const [depositReason, setDepositReason] = useState('')
+  const [checkingDeposit, setCheckingDeposit] = useState(false)
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -530,6 +534,7 @@ function OfficeBookingPageInner() {
 
     try {
       const planSlug = OFFICE_PLANS.find((p) => p.tier === booking.planTier)?.slug ?? booking.planTier
+      const needsDeposit = depositRequired !== false
       const payload = {
         service_slug: planSlug,
         category: 'office',
@@ -541,7 +546,8 @@ function OfficeBookingPageInner() {
         subtotal: quote?.monthlyRate ?? 0,
         tax: quote?.monthlyTax ?? 0,
         total: quote?.monthlyTotal ?? 0,
-        deposit_amount: quote?.monthlyTotal ?? 0,
+        deposit_amount: needsDeposit ? (quote?.monthlyTotal ?? 0) : 0,
+        deposit_waived: !needsDeposit,
         street: booking.street.trim(),
         unit: booking.unit.trim() || null,
         city: booking.city.trim(),
@@ -575,12 +581,14 @@ function OfficeBookingPageInner() {
       }
 
       const data = await res.json()
-      if (data.booking_id) {
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      } else if (data.deposit_amount > 0 && data.booking_id) {
         setPendingBookingId(data.booking_id)
-        setPendingAmount(quote?.monthlyTotal ?? 0)
+        setPendingAmount(data.deposit_amount)
         setShowPayment(true)
       } else {
-        router.push(`/portal/bookings/${data.booking_number || ''}?success=true`)
+        router.push(`/booking-confirmation?booking_id=${data.booking_id}&payment=none`)
       }
     } catch (err: unknown) {
       setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -1254,8 +1262,40 @@ function OfficeBookingPageInner() {
               <Button variant="outline" onClick={goBack}>
                 <ArrowLeft className="h-4 w-4" /> Back
               </Button>
-              <Button onClick={() => { if (validateDetails()) goNext() }}>
-                Continue <ArrowRight className="h-4 w-4" />
+              <Button
+                disabled={checkingDeposit}
+                onClick={async () => {
+                  if (!validateDetails()) return
+                  setCheckingDeposit(true)
+                  try {
+                    const res = await fetch('/api/deposit-check', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        email: booking.contactEmail.trim(),
+                        phone: booking.contactPhone.trim(),
+                      }),
+                    })
+                    const data = await res.json()
+                    setDepositRequired(data.deposit_required)
+                    setDepositReason(data.reason || '')
+                  } catch {
+                    setDepositRequired(true)
+                  } finally {
+                    setCheckingDeposit(false)
+                    goNext()
+                  }
+                }}
+              >
+                {checkingDeposit ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Checking...
+                  </>
+                ) : (
+                  <>
+                    Continue <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -1489,19 +1529,43 @@ function OfficeBookingPageInner() {
                 </div>
               )}
 
-              {/* First Month Payment */}
-              {quote && (
+              {/* Deposit / Payment Info */}
+              {depositRequired === false ? (
+                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 shrink-0 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-800">No deposit required!</p>
+                      <p className="mt-0.5 text-sm text-green-700">
+                        First-time customers book free. You&apos;ll pay after service is completed.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : depositRequired === true ? (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900">First month&apos;s payment required</p>
+                    <p className="text-lg font-bold text-primary">{formatCurrency(quote?.monthlyTotal ?? 0)}</p>
+                  </div>
+                  {depositReason && (
+                    <p className="mt-1 text-xs text-amber-600">{depositReason}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    Payment will be charged to confirm your booking.
+                  </p>
+                </div>
+              ) : quote ? (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-gray-900">First month&apos;s payment</p>
                     <p className="text-lg font-bold text-primary">{formatCurrency(quote.monthlyTotal)}</p>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
-                    Your first month&apos;s total will be charged to confirm your booking. Subsequent
-                    months will be billed automatically.
+                    Your first month&apos;s total will be charged to confirm your booking.
                   </p>
                 </div>
-              )}
+              ) : null}
 
               {/* Consent */}
               <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-gray-200 bg-white p-4">
@@ -1512,8 +1576,9 @@ function OfficeBookingPageInner() {
                   className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-gray-600">
-                  I agree to the service terms. First month&apos;s payment of{' '}
-                  {formatCurrency(quote?.monthlyTotal ?? 0)} will be charged.
+                  {depositRequired === false
+                    ? 'I agree to the service terms. No deposit is required for first-time customers. No-shows or late cancellations may require a deposit for future bookings.'
+                    : `I agree to the service terms. First month's payment of ${formatCurrency(quote?.monthlyTotal ?? 0)} will be charged.`}
                 </span>
               </label>
 
@@ -1538,6 +1603,11 @@ function OfficeBookingPageInner() {
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Processing...
+                    </>
+                  ) : depositRequired === false ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Confirm Booking
                     </>
                   ) : (
                     <>

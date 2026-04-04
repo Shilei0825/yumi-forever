@@ -46,6 +46,9 @@ const BOOKING_STATUSES = [
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
   { value: 'canceled', label: 'Canceled' },
+  { value: 'canceled_refundable', label: 'Canceled (Refundable)' },
+  { value: 'canceled_nonrefundable', label: 'Canceled (Non-Refundable)' },
+  { value: 'no_show', label: 'No-Show' },
 ]
 
 const PAYMENT_STATUS_OPTIONS = [
@@ -289,6 +292,30 @@ export default function AdminBookingDetailPage() {
     setMessage({ type: 'success', text: 'Booking canceled.' })
     await fetchBooking()
     setSaving(false)
+  }
+
+  async function handleNoShow() {
+    if (!booking || !confirm('Mark this booking as no-show? This will record a violation against the customer.')) return
+    setSaving(true)
+    setMessage(null)
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}/no-show`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: 'Marked as no-show by admin' }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to mark as no-show')
+      }
+      setMessage({ type: 'success', text: 'Booking marked as no-show. Violation recorded.' })
+      await fetchBooking()
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to mark no-show.' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -791,16 +818,27 @@ export default function AdminBookingDetailPage() {
                 <Send className="h-4 w-4" />
                 Send Payment Link
               </Button>
-              {booking.status !== 'canceled' && (
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={handleCancel}
-                  disabled={saving}
-                >
-                  <XCircle className="h-4 w-4" />
-                  Cancel Booking
-                </Button>
+              {booking.status !== 'canceled' && booking.status !== 'no_show' && (
+                <>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleCancel}
+                    disabled={saving}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancel Booking
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                    onClick={handleNoShow}
+                    disabled={saving}
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    Mark No-Show
+                  </Button>
+                </>
               )}
               <Button
                 variant="outline"
@@ -832,7 +870,11 @@ export default function AdminBookingDetailPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Deposit Required</span>
-                  <span className="text-gray-900">{formatCurrency(booking.deposit_amount)}</span>
+                  <span className="text-gray-900">
+                    {booking.deposit_waived
+                      ? 'Waived (first-time customer)'
+                      : formatCurrency(booking.deposit_amount)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Deposit Paid</span>

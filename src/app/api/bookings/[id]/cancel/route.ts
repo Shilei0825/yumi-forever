@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { evaluateCancellationPolicy } from '@/lib/recurring-pricing'
+import { normalizePhone } from '@/lib/utils'
 
 export async function POST(
   request: Request,
@@ -13,7 +15,7 @@ export async function POST(
     // Look up the booking
     const { data: booking, error: fetchError } = await supabase
       .from('bookings')
-      .select('id, status, scheduled_date, scheduled_time, deposit_amount')
+      .select('id, status, scheduled_date, scheduled_time, deposit_amount, customer_email, customer_phone')
       .eq('id', bookingId)
       .single()
 
@@ -71,6 +73,31 @@ export async function POST(
 
     if (historyError) {
       console.error('Status history insert error:', historyError)
+    }
+
+    // Record violation for late cancellations (within 24 hours)
+    if (!result.isRefundable) {
+      const supabaseAdmin = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+
+      const normalizedPhone = booking.customer_phone ? normalizePhone(booking.customer_phone) : null
+      const normalizedEmail = booking.customer_email?.toLowerCase().trim() || null
+
+      const { error: violationError } = await supabaseAdmin
+        .from('customer_violations')
+        .insert({
+          customer_email: normalizedEmail,
+          customer_phone: normalizedPhone,
+          violation_type: 'late_cancellation',
+          booking_id: bookingId,
+          notes: 'Canceled within 24 hours of scheduled service',
+        })
+
+      if (violationError) {
+        console.error('Violation insert error:', violationError)
+      }
     }
 
     return NextResponse.json({

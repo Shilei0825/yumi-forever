@@ -10,6 +10,9 @@ export type BookingStatus =
   | 'in_progress'
   | 'completed'
   | 'canceled'
+  | 'canceled_refundable'
+  | 'canceled_nonrefundable'
+  | 'no_show'
 
 export type PaymentStatus =
   | 'unpaid'
@@ -131,6 +134,9 @@ export interface Booking {
   started_at: string | null
   completed_at: string | null
   actual_duration_minutes: number | null
+  deposit_waived: boolean
+  review_credit_applied: number | null
+  review_credit_id: string | null
   created_at: string
   updated_at: string
   // Joined
@@ -270,6 +276,18 @@ export interface ReviewCredit {
   expires_at: string
   created_at: string
   used_at: string | null
+}
+
+export type ViolationType = 'no_show' | 'late_cancellation'
+
+export interface CustomerViolation {
+  id: string
+  customer_email: string | null
+  customer_phone: string | null
+  violation_type: ViolationType
+  booking_id: string | null
+  notes: string | null
+  created_at: string
 }
 
 export interface QuoteRequest {

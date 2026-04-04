@@ -20,7 +20,8 @@ interface BookingData {
 
 export async function sendBookingConfirmationEmail(
   booking: BookingData,
-  serviceName: string
+  serviceName: string,
+  hasAccount?: boolean
 ) {
   try {
     await resend.emails.send({
@@ -41,6 +42,7 @@ export async function sendBookingConfirmationEmail(
           name: item.name,
           price: formatCurrency(item.price),
         })),
+        hasAccount,
       }),
     })
   } catch (error) {

@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { generateBookingNumber, normalizePhone } from '@/lib/utils'
 import { getSquareClient, getSquareLocationId } from '@/lib/square'
+import { sendBookingConfirmationEmail } from '@/lib/emails/send'
 
 export async function POST(request: Request) {
   try {
@@ -69,6 +70,8 @@ export async function POST(request: Request) {
       // Review credit
       review_credit_id,
       review_credit_amount,
+      // Smart deposit
+      deposit_waived,
     } = body
 
     // --- Server-side validation ---
@@ -207,6 +210,7 @@ export async function POST(request: Request) {
         vehicle_class: vehicle_class || null,
         pricing_breakdown: pricing_breakdown || null,
         deposit_paid: 0,
+        deposit_waived: !!deposit_waived,
         remaining_balance: finalTotal,
         payment_status: 'unpaid',
         recurring_mode: recurring_mode || null,
@@ -386,6 +390,35 @@ export async function POST(request: Request) {
         payment_type: 'deposit',
         square_order_id: orderId || null,
       })
+    }
+
+    // Send confirmation email for no-deposit bookings (deposit bookings get email after payment)
+    if (finalDepositAmount <= 0) {
+      let serviceName = 'Service'
+      if (service_id) {
+        const { data: svc } = await supabaseAdmin
+          .from('services')
+          .select('name')
+          .eq('id', service_id)
+          .single()
+        if (svc) serviceName = svc.name
+      }
+
+      sendBookingConfirmationEmail(
+        {
+          booking_number: booking.booking_number,
+          customer_name,
+          customer_email,
+          scheduled_date,
+          scheduled_time,
+          address_text: finalAddressText,
+          total: finalTotal,
+          deposit_amount: 0,
+          remaining_balance: finalTotal,
+        },
+        serviceName,
+        !!user
+      )
     }
 
     return NextResponse.json(
