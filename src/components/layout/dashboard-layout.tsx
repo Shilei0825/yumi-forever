@@ -3,18 +3,20 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Menu,
   X,
   PanelLeftClose,
   PanelLeft,
   LogOut,
+  Loader2,
   User,
   ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BRAND } from "@/lib/constants"
+import { createClient } from "@/lib/supabase/client"
 import { SidebarNav, type NavItem } from "./sidebar-nav"
 
 interface DashboardLayoutProps {
@@ -34,7 +36,25 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    try {
+      await supabase.auth.signOut()
+      const loginPath =
+        userRole === 'crew' ? '/crew-login' :
+        userRole === 'admin' || userRole === 'dispatcher' ? '/admin-login' :
+        '/login'
+      router.push(loginPath)
+    } catch (error) {
+      console.error('Sign out error:', error)
+      setSigningOut(false)
+    }
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -91,13 +111,19 @@ export function DashboardLayout({
         <div className="border-t border-gray-200 p-4">
           <button
             type="button"
+            onClick={handleSignOut}
+            disabled={signingOut}
             className={cn(
               "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900",
               sidebarCollapsed && "justify-center"
             )}
           >
-            <LogOut className="h-4 w-4 shrink-0" />
-            {!sidebarCollapsed && <span>Sign Out</span>}
+            {signingOut ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4 shrink-0" />
+            )}
+            {!sidebarCollapsed && <span>{signingOut ? 'Signing Out...' : 'Sign Out'}</span>}
           </button>
         </div>
       </aside>
@@ -216,10 +242,16 @@ export function DashboardLayout({
           </div>
           <button
             type="button"
+            onClick={handleSignOut}
+            disabled={signingOut}
             className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
-            <LogOut className="h-4 w-4" />
-            Sign Out
+            {signingOut ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4" />
+            )}
+            {signingOut ? 'Signing Out...' : 'Sign Out'}
           </button>
         </div>
       </div>

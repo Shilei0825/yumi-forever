@@ -70,12 +70,14 @@ export default function BookingsPage() {
     fetchBookings()
   }, [fetchBookings])
 
+  const pastStatuses = ['completed', 'canceled', 'canceled_refundable', 'canceled_nonrefundable', 'no_show']
+
   const upcomingBookings = bookings.filter(
-    (b) => !['completed', 'canceled'].includes(b.status)
+    (b) => !pastStatuses.includes(b.status)
   )
 
   const pastBookings = bookings.filter((b) =>
-    ['completed', 'canceled'].includes(b.status)
+    pastStatuses.includes(b.status)
   )
 
   function getPaymentStatus(payments?: Payment[]) {
@@ -119,7 +121,7 @@ export default function BookingsPage() {
       if (res.ok && data.success) {
         setBookings((prev) =>
           prev.map((b) =>
-            b.id === bookingId ? { ...b, status: 'canceled' as const } : b
+            b.id === bookingId ? { ...b, status: data.status ?? 'canceled' } : b
           )
         )
       }
@@ -161,8 +163,8 @@ export default function BookingsPage() {
 
   function renderBookingCard(booking: Booking) {
     const paymentStatus = getPaymentStatus(booking.payments)
-    const canCancel = !['completed', 'canceled'].includes(booking.status)
-    const isUpcoming = !['completed', 'canceled'].includes(booking.status)
+    const canCancel = !pastStatuses.includes(booking.status)
+    const isUpcoming = !pastStatuses.includes(booking.status)
     const canReview = booking.status === 'completed'
     const serviceSlug = booking.service?.slug
 
@@ -298,7 +300,7 @@ export default function BookingsPage() {
             )}
 
             {paymentStatus === 'deposit_paid' &&
-              booking.status !== 'canceled' && (
+              !pastStatuses.includes(booking.status) && (
                 <Button
                   variant="outline"
                   size="sm"

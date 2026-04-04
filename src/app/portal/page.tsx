@@ -48,7 +48,7 @@ export default async function PortalDashboardPage() {
     .from('bookings')
     .select('*, service:services(*)')
     .eq('profile_id', user.id)
-    .not('status', 'in', '("completed","canceled")')
+    .not('status', 'in', '("completed","canceled","canceled_refundable","canceled_nonrefundable","no_show")')
     .order('scheduled_date', { ascending: true })
     .limit(5)
 
@@ -152,8 +152,9 @@ export default async function PortalDashboardPage() {
               ) : (
                 <div className="space-y-4">
                   {upcomingBookings.map((booking) => (
-                    <div
+                    <Link
                       key={booking.id}
+                      href={`/portal/bookings/${booking.id}`}
                       className="flex items-start gap-4 rounded-lg border border-gray-100 p-4 transition-colors hover:bg-gray-50"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
@@ -192,7 +193,7 @@ export default async function PortalDashboardPage() {
                           )}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
